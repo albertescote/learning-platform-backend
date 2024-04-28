@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, Max, Min } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, Max, Min } from 'class-validator';
 
 export default class SignatureRequestDto {
   @IsNotEmpty()
@@ -7,7 +7,7 @@ export default class SignatureRequestDto {
   @Max(1)
   role: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
   @Min(1800)
   @Max(172800)

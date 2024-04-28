@@ -6,8 +6,8 @@ import { SignatureOptions } from '../domain/signatureOptions';
 
 export interface SignatureRequest {
   role: number;
-  expirationSeconds: number;
   meetingNumber: number;
+  expirationSeconds?: number;
 }
 
 export interface SignatureResponse {
