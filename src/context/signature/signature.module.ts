@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import RsaSigner from './infrastructure/rsasigner';
+import RsaSigner from './infrastructure/rsaSigner';
 import { SignatureService } from './service/signature.service';
 
 @Module({

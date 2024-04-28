@@ -2,15 +2,14 @@ import {
   SignatureRequest,
   SignatureService,
 } from '../../../../src/context/signature/service/signature.service';
-import RsaSigner, {
-  SignatureOptions,
-} from '../../../../src/context/signature/infrastructure/rsaSigner';
+import RsaSigner from '../../../../src/context/signature/infrastructure/rsaSigner';
 import { mock } from 'jest-mock-extended';
 import { SupportedAlgorithms } from '../../../../src/context/signature/domain/supportedAlgorithms';
 import {
   ZOOM_MEETING_SDK_KEY,
   ZOOM_MEETING_SDK_SECRET,
 } from '../../../../src/context/signature/config';
+import { SignatureOptions } from '../../../../src/context/signature/domain/signatureOptions';
 
 describe('Signature Service should', () => {
   it('create a signature for a valid input', () => {

@@ -1,13 +1,6 @@
 import { KJUR } from 'jsrsasign';
 import { Injectable } from '@nestjs/common';
-import { SupportedAlgorithms } from '../domain/supportedAlgorithms';
-
-export interface SignatureOptions {
-  alg: SupportedAlgorithms;
-  header: string | { alg: string };
-  payload: string | object;
-  secret: string;
-}
+import { SignatureOptions } from '../domain/signatureOptions';
 
 @Injectable()
 export default class RsaSigner {

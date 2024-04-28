@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ZOOM_MEETING_SDK_KEY, ZOOM_MEETING_SDK_SECRET } from '../config';
-import RsaSigner, { SignatureOptions } from '../infrastructure/rsasigner';
+import RsaSigner from '../infrastructure/rsaSigner';
 import { SupportedAlgorithms } from '../domain/supportedAlgorithms';
+import { SignatureOptions } from '../domain/signatureOptions';
 
 export interface SignatureRequest {
   role: number;
