@@ -7,7 +7,7 @@ import {
   Min,
 } from 'class-validator';
 
-export default class SignatureRequestDto {
+export default class SignatureVideoRequestDto {
   @IsNotEmpty()
   @IsNumber()
   @Min(0)
@@ -21,10 +21,6 @@ export default class SignatureRequestDto {
   expirationSeconds: number;
 
   @IsOptional()
-  @IsNumber()
-  meetingNumber?: number;
-
-  @IsOptional()
   @IsString()
-  topic?: string;
+  topic: string;
 }
