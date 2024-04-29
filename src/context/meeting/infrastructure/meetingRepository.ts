@@ -38,8 +38,10 @@ export class MeetingRepository {
     return null;
   }
 
-  deleteMeeting(id: number): boolean {
-    const index = this.meetings.findIndex((meeting) => meeting.id === id);
+  deleteMeeting(id: MeetingId): boolean {
+    const index = this.meetings.findIndex(
+      (meeting) => meeting.id === id.toPrimitive(),
+    );
     if (index !== -1) {
       this.meetings.splice(index, 1);
       return true;

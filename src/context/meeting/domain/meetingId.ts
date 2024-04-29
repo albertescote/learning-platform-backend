@@ -12,7 +12,7 @@ export default class MeetingId {
   }
 
   validate(id: number) {
-    return id >= 9999999999 && id <= 1000000000;
+    return id >= 1000000000 && id <= 9999999999;
   }
 
   toPrimitive(): number {
