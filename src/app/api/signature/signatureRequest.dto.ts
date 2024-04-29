@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsNumber, IsOptional, Max, Min } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 export default class SignatureRequestDto {
   @IsNotEmpty()
@@ -13,7 +20,11 @@ export default class SignatureRequestDto {
   @Max(172800)
   expirationSeconds: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
-  meetingNumber: number;
+  meetingNumber?: number;
+
+  @IsOptional()
+  @IsString()
+  topic?: string;
 }
