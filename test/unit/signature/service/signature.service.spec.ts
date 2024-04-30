@@ -2,7 +2,7 @@ import {
   SignatureService,
   SignatureVideoRequest,
 } from '../../../../src/context/signature/service/signature.service';
-import RsaSigner from '../../../../src/context/signature/infrastructure/rsaSigner';
+import RsaSigner from '../../../../src/context/shared/infrastructure/rsaSigner';
 import { mock } from 'jest-mock-extended';
 import { SupportedAlgorithms } from '../../../../src/context/signature/domain/supportedAlgorithms';
 import {

@@ -1,4 +1,5 @@
 import UserId from './userId';
+import { Role } from './role';
 
 export interface UserPrimitives {
   id: string;
@@ -6,6 +7,7 @@ export interface UserPrimitives {
   familyName: string;
   email: string;
   password: string;
+  role: string;
 }
 
 export default class User {
@@ -15,15 +17,21 @@ export default class User {
     private familyName: string,
     private email: string,
     private password: string,
+    private role: Role,
   ) {}
 
   static fromPrimitives(user: UserPrimitives): User {
+    const role = Role[user.role];
+    if (!role) {
+      throw new Error('invalid role');
+    }
     return new User(
       new UserId(user.id),
       user.firstName,
       user.familyName,
       user.email,
       user.password,
+      role,
     );
   }
 
@@ -34,6 +42,7 @@ export default class User {
       familyName: this.familyName,
       email: this.email,
       password: this.password,
+      role: this.role.toString(),
     };
   }
 }

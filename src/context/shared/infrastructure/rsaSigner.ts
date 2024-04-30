@@ -1,6 +1,6 @@
 import { KJUR } from 'jsrsasign';
 import { Injectable } from '@nestjs/common';
-import { SignatureOptions } from '../domain/signatureOptions';
+import { SignatureOptions } from '../../signature/domain/signatureOptions';
 
 @Injectable()
 export default class RsaSigner {
@@ -11,5 +11,9 @@ export default class RsaSigner {
       signatureOptions.payload,
       signatureOptions.secret,
     );
+  }
+
+  public verify(jwt: string, secret: string): boolean {
+    return KJUR.jws.JWS.verify(jwt, secret);
   }
 }

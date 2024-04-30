@@ -16,6 +16,11 @@ export class UserRepository {
     return User.fromPrimitives(user);
   }
 
+  getUserByEmail(email: string): User {
+    const user = this.users.find((user) => user.email === email);
+    return User.fromPrimitives(user);
+  }
+
   getAllUsers(): User[] {
     return this.users.map((user) => {
       return User.fromPrimitives(user);

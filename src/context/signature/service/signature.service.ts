@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ZOOM_MEETING_SDK_KEY, ZOOM_MEETING_SDK_SECRET } from '../config';
-import RsaSigner from '../infrastructure/rsaSigner';
+import RsaSigner from '../../shared/infrastructure/rsaSigner';
 import { SupportedAlgorithms } from '../domain/supportedAlgorithms';
 import { SignatureOptions } from '../domain/signatureOptions';
 import { VideoPayload } from '../domain/payload';

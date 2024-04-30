@@ -2,12 +2,17 @@ import { Injectable } from '@nestjs/common';
 import User from '../domain/user';
 import UserId from '../domain/userId';
 import { UserRepository } from '../infrastructure/userRepository';
+import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { UserQuery } from './user.query';
+import { PasswordService } from '../../shared/utils/password.service';
+import { Role } from '../domain/role';
 
 export interface UserRequest {
   firstName: string;
   familyName: string;
   email: string;
   password: string;
+  role: string;
 }
 
 export interface UserResponse {
@@ -15,33 +20,76 @@ export interface UserResponse {
   firstName: string;
   familyName: string;
   email: string;
+  role: string;
+}
+
+export interface CompleteUserResponse {
+  id: string;
+  firstName: string;
+  familyName: string;
+  email: string;
+  password: string;
+  role: string;
 }
 
 @Injectable()
-export class UserService {
-  constructor(private userRepository: UserRepository) {}
+@QueryHandler(UserQuery)
+export class UserService implements IQueryHandler<UserQuery> {
+  constructor(
+    private userRepository: UserRepository,
+    private passwordService: PasswordService,
+  ) {}
 
-  create(request: UserRequest): UserResponse {
+  async create(request: UserRequest): Promise<UserResponse> {
+    const encryptedPassword = await this.passwordService.hashPassword(
+      request.password,
+    );
+    const role = Role[request.role];
+    if (!role) {
+      throw new Error('invalid role');
+    }
     const user = new User(
       UserId.generate(),
       request.firstName,
       request.familyName,
       request.email,
-      request.password,
+      encryptedPassword,
+      role,
     );
     const storedUser = this.userRepository.addUser(user);
-    return storedUser.toPrimitives();
+    const userPrimitives = storedUser.toPrimitives();
+    return {
+      id: userPrimitives.id,
+      firstName: userPrimitives.firstName,
+      familyName: userPrimitives.familyName,
+      email: userPrimitives.email,
+      role: userPrimitives.role,
+    };
   }
 
   getById(id: string): UserResponse {
     const storedUser = this.userRepository.getUserById(new UserId(id));
-    return storedUser.toPrimitives();
+    const userPrimitives = storedUser.toPrimitives();
+    return {
+      id: userPrimitives.id,
+      firstName: userPrimitives.firstName,
+      familyName: userPrimitives.familyName,
+      email: userPrimitives.email,
+      role: userPrimitives.role,
+    };
   }
 
   getAll(): UserResponse[] {
     const users = this.userRepository.getAllUsers();
     return users.map((user) => {
-      return user.toPrimitives();
+      const userPrimitives = user.toPrimitives();
+      return {
+        id: userPrimitives.id,
+        firstName: userPrimitives.firstName,
+        familyName: userPrimitives.familyName,
+        email: userPrimitives.email,
+        role: userPrimitives.role,
+      };
     });
   }
 
@@ -50,7 +98,14 @@ export class UserService {
       new UserId(id),
       User.fromPrimitives({ ...request, id }),
     );
-    return updatedUser.toPrimitives();
+    const userPrimitives = updatedUser.toPrimitives();
+    return {
+      id: userPrimitives.id,
+      firstName: userPrimitives.firstName,
+      familyName: userPrimitives.familyName,
+      email: userPrimitives.email,
+      role: userPrimitives.role,
+    };
   }
 
   deleteById(id: string): void {
@@ -59,5 +114,10 @@ export class UserService {
       throw new Error(`unable to delete this user: ${id}`);
     }
     return;
+  }
+
+  async execute(query: UserQuery): Promise<CompleteUserResponse> {
+    const storedUser = this.userRepository.getUserByEmail(query.email);
+    return storedUser.toPrimitives();
   }
 }

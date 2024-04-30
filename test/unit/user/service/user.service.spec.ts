@@ -12,7 +12,7 @@ describe('User Service should', () => {
     jest.restoreAllMocks();
   });
 
-  it('create a new user', () => {
+  it('create a new user', async () => {
     const expectedRepositoryReturnValue: User = new User(
       UserId.generate(),
       'John',
@@ -22,7 +22,7 @@ describe('User Service should', () => {
     );
     userRepositoryMock.addUser.mockReturnValue(expectedRepositoryReturnValue);
 
-    const newUser = userService.create({
+    const newUser = await userService.create({
       firstName: 'John',
       familyName: 'Doe',
       email: 'email@example.com',

@@ -19,9 +19,9 @@ export class UserController {
 
   @Post('/')
   @HttpCode(201)
-  create(@Body() body: CreateUserRequestDto): UserResponseDto {
+  async create(@Body() body: CreateUserRequestDto): Promise<UserResponseDto> {
     console.log('[POST /user]: request received');
-    const response = this.userService.create(body);
+    const response = await this.userService.create(body);
     console.log('[POST /user]: response sent');
     return response;
   }
