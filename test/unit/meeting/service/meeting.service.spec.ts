@@ -15,12 +15,13 @@ describe('Meeting Service should', () => {
   it('create a new meeting', () => {
     const expectedRepositoryReturnValue: Meeting = new Meeting(
       MeetingId.generate(),
+      'topic',
     );
     meetingRepositoryMock.addMeeting.mockReturnValue(
       expectedRepositoryReturnValue,
     );
 
-    const newMeeting = meetingService.create();
+    const newMeeting = meetingService.create({ topic: 'topic' });
 
     expect(newMeeting.id).toStrictEqual(
       expectedRepositoryReturnValue.toPrimitives().id,
@@ -30,6 +31,7 @@ describe('Meeting Service should', () => {
   it('get a meeting by id', () => {
     const expectedRepositoryReturnValue: Meeting = new Meeting(
       MeetingId.generate(),
+      'topic',
     );
     meetingRepositoryMock.getMeetingById.mockReturnValue(
       expectedRepositoryReturnValue,
@@ -47,7 +49,7 @@ describe('Meeting Service should', () => {
     );
   });
   it('get all meetings', () => {
-    const newMeeting: Meeting = new Meeting(MeetingId.generate());
+    const newMeeting: Meeting = new Meeting(MeetingId.generate(), 'topic');
     const expectedRepositoryReturnValue = [newMeeting];
     meetingRepositoryMock.getAllMeetings.mockReturnValue(
       expectedRepositoryReturnValue,
@@ -62,6 +64,7 @@ describe('Meeting Service should', () => {
   it('update a meeting', () => {
     const expectedRepositoryReturnValue: Meeting = new Meeting(
       MeetingId.generate(),
+      'topic',
     );
     meetingRepositoryMock.updateMeeting.mockReturnValue(
       expectedRepositoryReturnValue,

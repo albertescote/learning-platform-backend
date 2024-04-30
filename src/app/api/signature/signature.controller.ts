@@ -1,29 +1,17 @@
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import { SignatureService } from '../../../context/signature/service/signature.service';
 import { SignatureResponseDto } from './signatureResponse.dto';
-import SignatureVideoRequestDto from './signatureVideoRequest.dto';
-import SignatureMeetingRequestDto from './signatureMeetingRequest.dto';
+import SignatureRequestDto from './signatureRequest.dto';
 
 @Controller('signature')
 export class SignatureController {
   constructor(private readonly signatureService: SignatureService) {}
-
-  @Post('/meeting')
+  @Post()
   @HttpCode(201)
-  signatureMeeting(
-    @Body() body: SignatureMeetingRequestDto,
-  ): SignatureResponseDto {
-    console.log('[POST /signature/meeting]: request received');
-    const response = this.signatureService.signatureMeeting(body);
-    console.log('[POST /signature/meeting]: response sent');
-    return response;
-  }
-  @Post('/video')
-  @HttpCode(201)
-  signatureVideo(@Body() body: SignatureVideoRequestDto): SignatureResponseDto {
-    console.log('[POST /signature/video]: request received');
-    const response = this.signatureService.signatureVideo(body);
-    console.log('[POST /signature/video]: response sent');
+  signatureVideo(@Body() body: SignatureRequestDto): SignatureResponseDto {
+    console.log('[POST /signature]: request received');
+    const response = this.signatureService.signature(body);
+    console.log('[POST /signature]: response sent');
     return response;
   }
 }

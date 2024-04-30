@@ -7,7 +7,7 @@ import {
   Min,
 } from 'class-validator';
 
-export default class SignatureVideoRequestDto {
+export default class SignatureRequestDto {
   @IsNotEmpty()
   @IsNumber()
   @Min(0)

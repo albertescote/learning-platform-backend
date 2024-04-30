@@ -1,3 +1,4 @@
 export interface MeetingResponseDto {
-  id: number;
+  id: string;
+  topic: string;
 }

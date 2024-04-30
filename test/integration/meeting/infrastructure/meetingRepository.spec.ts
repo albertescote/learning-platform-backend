@@ -6,7 +6,7 @@ describe('Meeting Repository should', () => {
   const meetingRepository = new MeetingRepository();
 
   it('CRUD for meeting object', () => {
-    const newMeeting: Meeting = new Meeting(MeetingId.generate());
+    const newMeeting: Meeting = new Meeting(MeetingId.generate(), 'topic');
 
     const addedMeeting = meetingRepository.addMeeting(newMeeting);
 
@@ -15,7 +15,7 @@ describe('Meeting Repository should', () => {
     expect(allMeetings.length).toStrictEqual(1);
     expect(allMeetings[0]).toStrictEqual(newMeeting);
 
-    const newUpdatedMeeting = new Meeting(MeetingId.generate());
+    const newUpdatedMeeting = new Meeting(MeetingId.generate(), 'topic-2');
     const updatedMeeting = meetingRepository.updateMeeting(
       new MeetingId(addedMeeting.toPrimitives().id),
       newUpdatedMeeting,
