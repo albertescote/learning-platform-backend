@@ -2,6 +2,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
 import { AUTHORIZE_SERVICE_SECRET } from '../config';
+import { UserAuthInfo } from '../../shared/domain/userAuthInfo';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -13,7 +14,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) {
-    return { email: payload.email };
+  async validate(payload: any): Promise<UserAuthInfo> {
+    return { id: payload.id, email: payload.email };
   }
 }

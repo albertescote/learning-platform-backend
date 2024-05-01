@@ -1,9 +1,10 @@
 import { v4 as uuidv4, validate } from 'uuid';
+import { InvalidUserIdFormatException } from '../exceptions/invalidUserIdFormatException';
 
 export default class UserId {
   constructor(private value: string) {
     if (!validate(value)) {
-      throw new Error('invalid userId format');
+      throw new InvalidUserIdFormatException(value);
     }
   }
 

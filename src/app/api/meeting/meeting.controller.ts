@@ -17,6 +17,7 @@ import { CreateMeetingRequestDto } from './createMeetingRequest.dto';
 import { JwtAuthGuard } from '../../../context/auth/guards/jwt.guard';
 import { MeetingResponseDto } from './meetingResponse.dto';
 import { IdParamDto } from './idParam.dto';
+import { UserAuthInfo } from '../../../context/shared/domain/userAuthInfo';
 
 @Controller('meeting')
 export class MeetingController {
@@ -26,11 +27,11 @@ export class MeetingController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(201)
   async create(
-    @Request() req: { user: { email: string } },
+    @Request() req: { user: UserAuthInfo },
     @Body() body: CreateMeetingRequestDto,
   ): Promise<CreateMeetingResponseDto> {
     console.log('[POST /meeting]: request received');
-    const response = await this.meetingService.create(body, req.user.email);
+    const response = await this.meetingService.create(body, req.user);
     console.log('[POST /meeting]: response sent');
     return response;
   }
@@ -60,14 +61,14 @@ export class MeetingController {
   @HttpCode(200)
   async update(
     @Param() idParamDto: IdParamDto,
-    @Request() req: { user: { email: string } },
+    @Request() req: { user: UserAuthInfo },
     @Body() body: UpdateMeetingRequestDto,
   ): Promise<MeetingResponseDto> {
     console.log(`[PUT /meeting/${idParamDto.id}]: request received`);
     const response = await this.meetingService.update(
       idParamDto.id,
       body,
-      req.user.email,
+      req.user,
     );
     console.log(`[PUT /meeting/${idParamDto.id}]: response sent`);
     return response;
@@ -76,9 +77,12 @@ export class MeetingController {
   @Delete('/:id')
   @UseGuards(JwtAuthGuard)
   @HttpCode(204)
-  delete(@Param() idParamDto: IdParamDto): void {
+  delete(
+    @Request() req: { user: UserAuthInfo },
+    @Param() idParamDto: IdParamDto,
+  ): void {
     console.log(`[DELETE /meeting/${idParamDto.id}]: request received`);
-    this.meetingService.deleteById(idParamDto.id);
+    this.meetingService.deleteById(idParamDto.id, req.user);
     console.log(`[DELETE /meeting/${idParamDto.id}]: response sent`);
     return;
   }

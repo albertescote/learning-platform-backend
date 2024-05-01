@@ -6,6 +6,12 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { UserQuery } from './user.query';
 import { PasswordService } from '../../shared/utils/password.service';
 import { Role } from '../../shared/domain/role';
+import { UserAuthInfo } from '../../shared/domain/userAuthInfo';
+import { UserNotFoundException } from '../exception/userNotFoundException';
+import { WrongPermissionsException } from '../exception/wrongPermissionsException';
+import { EmailAlreadyExistsException } from '../exception/emailAlreadyExistsException';
+import { NotAbleToExecuteUserDbTransactionException } from '../exception/notAbleToExecuteUserDbTransactionException';
+import { InvalidRoleException } from '../../shared/exceptions/invalidRoleException';
 
 export interface CreateUserRequest {
   firstName: string;
@@ -44,7 +50,7 @@ export class UserService implements IQueryHandler<UserQuery> {
     );
     const role = Role[request.role];
     if (!role) {
-      throw new Error('invalid role');
+      throw new InvalidRoleException(request.role);
     }
     this.checkExistingEmail(request.email);
     const user = new User(
@@ -56,6 +62,9 @@ export class UserService implements IQueryHandler<UserQuery> {
       role,
     );
     const storedUser = this.userRepository.addUser(user);
+    if (!storedUser) {
+      throw new NotAbleToExecuteUserDbTransactionException(`store user`);
+    }
     const userPrimitives = storedUser.toPrimitives();
     return {
       id: userPrimitives.id,
@@ -69,7 +78,7 @@ export class UserService implements IQueryHandler<UserQuery> {
   getById(id: string): UserResponse {
     const storedUser = this.userRepository.getUserById(new UserId(id));
     if (!storedUser) {
-      throw new Error('user not found');
+      throw new UserNotFoundException(id);
     }
     const userPrimitives = storedUser.toPrimitives();
     return {
@@ -95,10 +104,17 @@ export class UserService implements IQueryHandler<UserQuery> {
     });
   }
 
-  update(id: string, request: UpdateUserRequest): UserResponse {
+  update(
+    id: string,
+    request: UpdateUserRequest,
+    userAuthInfo: UserAuthInfo,
+  ): UserResponse {
     const oldUser = this.userRepository.getUserById(new UserId(id));
     if (!oldUser) {
-      throw new Error('user not found');
+      throw new UserNotFoundException(id);
+    }
+    if (oldUser.toPrimitives().id !== userAuthInfo.id) {
+      throw new WrongPermissionsException('update user');
     }
     if (oldUser.toPrimitives().email !== request.email) {
       this.checkExistingEmail(oldUser.toPrimitives().email);
@@ -111,6 +127,11 @@ export class UserService implements IQueryHandler<UserQuery> {
         password: oldUser.toPrimitives().password,
       }),
     );
+    if (!updatedUser) {
+      throw new NotAbleToExecuteUserDbTransactionException(
+        `update user (${id})`,
+      );
+    }
     const userPrimitives = updatedUser.toPrimitives();
     return {
       id: userPrimitives.id,
@@ -121,10 +142,19 @@ export class UserService implements IQueryHandler<UserQuery> {
     };
   }
 
-  deleteById(id: string): void {
+  deleteById(id: string, userAuthInfo: UserAuthInfo): void {
+    const oldUser = this.userRepository.getUserById(new UserId(id));
+    if (!oldUser) {
+      throw new UserNotFoundException(id);
+    }
+    if (oldUser.toPrimitives().id !== userAuthInfo.id) {
+      throw new WrongPermissionsException('delete user');
+    }
     const deleted = this.userRepository.deleteUser(new UserId(id));
     if (!deleted) {
-      throw new Error(`unable to delete this user: ${id}`);
+      throw new NotAbleToExecuteUserDbTransactionException(
+        `delete user (${id})`,
+      );
     }
     return;
   }
@@ -136,7 +166,7 @@ export class UserService implements IQueryHandler<UserQuery> {
   private checkExistingEmail(email: string): void {
     const existingUserWithSameEmail = this.userRepository.getUserByEmail(email);
     if (!!existingUserWithSameEmail) {
-      throw new Error('a user with this email already exists');
+      throw new EmailAlreadyExistsException(email);
     }
   }
 }

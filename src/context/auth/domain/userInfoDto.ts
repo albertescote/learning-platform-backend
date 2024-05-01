@@ -1,5 +1,6 @@
 import UserId from '../../shared/domain/userId';
 import { Role } from '../../shared/domain/role';
+import { InvalidRoleException } from '../../shared/exceptions/invalidRoleException';
 
 export interface UserInfoDtoPrimitives {
   id: string;
@@ -21,7 +22,7 @@ export default class UserInfoDto {
   static fromPrimitives(user: UserInfoDtoPrimitives): UserInfoDto {
     const role = Role[user.role];
     if (!role) {
-      throw new Error('invalid role');
+      throw new InvalidRoleException(user.role);
     }
     return new UserInfoDto(
       new UserId(user.id),

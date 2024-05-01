@@ -5,6 +5,8 @@ import { JwtService } from '@nestjs/jwt';
 import UserInfoDto from '../domain/userInfoDto';
 import { TOKEN_EXPIRES_IN_SECONDS, TOKEN_TYPE } from '../config';
 import ms from 'ms';
+import { InvalidEmailException } from '../exceptions/invalidEmailException';
+import { InvalidPasswordException } from '../exceptions/invalidPasswordException';
 
 export interface LoginResponse {
   access_token: string;
@@ -31,14 +33,14 @@ export class AuthService {
   async validateUser(email: string, password: string): Promise<UserInfoDto> {
     const user = await this.moduleConnectors.obtainUserInformation(email);
     if (!user) {
-      throw new Error('invalid email');
+      throw new InvalidEmailException(email);
     }
     const valid = await this.passwordService.comparePasswords(
       password,
       user.toPrimitives().password,
     );
     if (!valid) {
-      throw new Error('invalid password');
+      throw new InvalidPasswordException();
     }
     return UserInfoDto.fromPrimitives(user.toPrimitives());
   }

@@ -1,5 +1,6 @@
 import UserId from './userId';
 import { Role } from './role';
+import { InvalidRoleException } from '../exceptions/invalidRoleException';
 
 export interface UserPrimitives {
   id: string;
@@ -23,7 +24,7 @@ export default class User {
   static fromPrimitives(user: UserPrimitives): User {
     const role = Role[user.role];
     if (!role) {
-      throw new Error('invalid role');
+      throw new InvalidRoleException(user.role);
     }
     return new User(
       new UserId(user.id),

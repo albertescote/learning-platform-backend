@@ -9,6 +9,10 @@ import { VideoPayload } from '../domain/payload';
 import { SignatureOptions } from '../domain/signatureOptions';
 import RsaSigner from '../../shared/infrastructure/rsaSigner';
 import { ModuleConnectors } from '../../shared/infrastructure/moduleConnectors';
+import { UserAuthInfo } from '../../shared/domain/userAuthInfo';
+import { WrongPermissionsException } from '../exceptions/wrongPermissionsException';
+import { MeetingNotFoundException } from '../exceptions/meetingNotFoundException';
+import { NotAbleToExecuteMeetingDbTransactionException } from '../exceptions/notAbleToExecuteMeetingDbTransactionException';
 
 export interface MeetingRequest {
   topic: string;
@@ -38,19 +42,25 @@ export class MeetingService {
 
   async create(
     request: MeetingRequest,
-    email: string,
+    userAuthInfo: UserAuthInfo,
   ): Promise<CreateMeetingResponse> {
-    const user = await this.moduleConnectors.obtainUserInformation(email);
+    const user = await this.moduleConnectors.obtainUserInformation(
+      userAuthInfo.email,
+    );
     const parsedRole = user.getRole();
     if (parsedRole !== Role.Teacher) {
-      throw new Error('unauthorized: you are not able to create a meeting');
+      throw new WrongPermissionsException('create meeting');
     }
     const meeting = new Meeting(
       MeetingId.generate(),
       request.topic,
       parsedRole,
+      userAuthInfo.id,
     );
     const storedMeeting = this.meetingRepository.addMeeting(meeting);
+    if (!storedMeeting) {
+      throw new NotAbleToExecuteMeetingDbTransactionException(`store meeting`);
+    }
     return {
       ...storedMeeting.toPrimitives(),
       signature: this.signature(
@@ -66,7 +76,7 @@ export class MeetingService {
       new MeetingId(id),
     );
     if (!storedMeeting) {
-      throw new Error('meeting not found');
+      throw new MeetingNotFoundException(id);
     }
     return storedMeeting.toPrimitives();
   }
@@ -81,30 +91,45 @@ export class MeetingService {
   async update(
     id: string,
     request: MeetingRequest,
-    email: string,
+    userAuthInfo: UserAuthInfo,
   ): Promise<MeetingResponse> {
-    const user = await this.moduleConnectors.obtainUserInformation(email);
-    if (user.getRole() !== Role.Teacher) {
-      throw new Error('unauthorized: you are not able to create a meeting');
+    const oldMeeting = this.meetingRepository.getMeetingById(new MeetingId(id));
+    if (!oldMeeting) {
+      throw new MeetingNotFoundException(id);
+    }
+    if (oldMeeting.toPrimitives().ownerId !== userAuthInfo.id) {
+      throw new WrongPermissionsException('update meeting');
     }
     const updatedMeeting = this.meetingRepository.updateMeeting(
       new MeetingId(id),
       Meeting.fromPrimitives({
         ...request,
         id,
-        role: user.getRole(),
+        role: Role.Teacher,
+        ownerId: userAuthInfo.id,
       }),
     );
     if (!updatedMeeting) {
-      throw new Error('meeting not found');
+      throw new NotAbleToExecuteMeetingDbTransactionException(
+        `update meeting (${id})`,
+      );
     }
     return updatedMeeting.toPrimitives();
   }
 
-  deleteById(id: string): void {
+  deleteById(id: string, userAuthInfo: UserAuthInfo): void {
+    const oldMeeting = this.meetingRepository.getMeetingById(new MeetingId(id));
+    if (!oldMeeting) {
+      throw new MeetingNotFoundException(id);
+    }
+    if (oldMeeting.toPrimitives().ownerId !== userAuthInfo.id) {
+      throw new WrongPermissionsException('delete meeting');
+    }
     const deleted = this.meetingRepository.deleteMeeting(new MeetingId(id));
     if (!deleted) {
-      throw new Error(`unable to delete this meeting: ${id}`);
+      throw new NotAbleToExecuteMeetingDbTransactionException(
+        `delete meeting (${id})`,
+      );
     }
     return;
   }

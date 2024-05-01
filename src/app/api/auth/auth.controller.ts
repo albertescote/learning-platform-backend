@@ -7,7 +7,6 @@ import { UserInfoDtoPrimitives } from '../../../context/auth/domain/userInfoDto'
 @Controller('/auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
-
   @UseGuards(LocalAuthGuard)
   @Post('/login')
   async login(

@@ -1,9 +1,10 @@
 import { v4 as uuidv4, validate } from 'uuid';
+import { InvalidMeetingIdFormatException } from '../exceptions/invalidMeetingIdFormatException';
 
 export default class MeetingId {
   constructor(private value: string) {
     if (!validate(value)) {
-      throw new Error('invalid meetingId format');
+      throw new InvalidMeetingIdFormatException(value);
     }
   }
 

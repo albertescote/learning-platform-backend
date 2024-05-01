@@ -5,6 +5,7 @@ export interface MeetingPrimitives {
   id: string;
   topic: string;
   role: string;
+  ownerId: string;
 }
 
 export default class Meeting {
@@ -12,6 +13,7 @@ export default class Meeting {
     private id: MeetingId,
     private topic: string,
     private role: Role,
+    private ownerId: string,
   ) {}
 
   static fromPrimitives(meeting: MeetingPrimitives): Meeting {
@@ -19,6 +21,7 @@ export default class Meeting {
       new MeetingId(meeting.id),
       meeting.topic,
       Role[meeting.role],
+      meeting.ownerId,
     );
   }
 
@@ -27,6 +30,7 @@ export default class Meeting {
       id: this.id.toPrimitive(),
       topic: this.topic,
       role: this.role.toString(),
+      ownerId: this.ownerId,
     };
   }
 }
