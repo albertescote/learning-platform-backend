@@ -3,25 +3,38 @@ import { MeetingRepository } from '../../../../src/context/meeting/infrastructur
 import { mock } from 'jest-mock-extended';
 import Meeting from '../../../../src/context/meeting/domain/meeting';
 import MeetingId from '../../../../src/context/meeting/domain/meetingId';
+import { Role } from '../../../../src/context/shared/domain/role';
+import RsaSigner from '../../../../src/context/shared/infrastructure/rsaSigner';
+import { ModuleConnectors } from '../../../../src/context/shared/infrastructure/moduleConnectors';
 
 describe('Meeting Service should', () => {
   const meetingRepositoryMock = mock<MeetingRepository>();
-  const meetingService = new MeetingService(meetingRepositoryMock);
+  const rsaSigner = new RsaSigner();
+  const moduleConnectors = mock<ModuleConnectors>();
+  const meetingService = new MeetingService(
+    meetingRepositoryMock,
+    rsaSigner,
+    moduleConnectors,
+  );
 
   beforeEach(() => {
     jest.restoreAllMocks();
   });
 
-  it('create a new meeting', () => {
+  it('create a new meeting', async () => {
     const expectedRepositoryReturnValue: Meeting = new Meeting(
       MeetingId.generate(),
       'topic',
+      Role.Teacher,
     );
     meetingRepositoryMock.addMeeting.mockReturnValue(
       expectedRepositoryReturnValue,
     );
 
-    const newMeeting = meetingService.create({ topic: 'topic' });
+    const newMeeting = await meetingService.create(
+      { topic: 'topic' },
+      'email@test.com',
+    );
 
     expect(newMeeting.id).toStrictEqual(
       expectedRepositoryReturnValue.toPrimitives().id,
@@ -32,6 +45,7 @@ describe('Meeting Service should', () => {
     const expectedRepositoryReturnValue: Meeting = new Meeting(
       MeetingId.generate(),
       'topic',
+      Role.Student,
     );
     meetingRepositoryMock.getMeetingById.mockReturnValue(
       expectedRepositoryReturnValue,
@@ -49,7 +63,11 @@ describe('Meeting Service should', () => {
     );
   });
   it('get all meetings', () => {
-    const newMeeting: Meeting = new Meeting(MeetingId.generate(), 'topic');
+    const newMeeting: Meeting = new Meeting(
+      MeetingId.generate(),
+      'topic',
+      Role.Teacher,
+    );
     const expectedRepositoryReturnValue = [newMeeting];
     meetingRepositoryMock.getAllMeetings.mockReturnValue(
       expectedRepositoryReturnValue,
@@ -61,18 +79,20 @@ describe('Meeting Service should', () => {
     expect(allMeetings[0].id).toStrictEqual(newMeeting.toPrimitives().id);
     expect(meetingRepositoryMock.getAllMeetings).toHaveBeenCalled();
   });
-  it('update a meeting', () => {
+  it('update a meeting', async () => {
     const expectedRepositoryReturnValue: Meeting = new Meeting(
       MeetingId.generate(),
       'topic',
+      Role.Teacher,
     );
     meetingRepositoryMock.updateMeeting.mockReturnValue(
       expectedRepositoryReturnValue,
     );
 
-    const meeting = meetingService.update(
+    const meeting = await meetingService.update(
       expectedRepositoryReturnValue.toPrimitives().id,
       expectedRepositoryReturnValue.toPrimitives(),
+      'email@test.com',
     );
 
     expect(meeting.id).toStrictEqual(

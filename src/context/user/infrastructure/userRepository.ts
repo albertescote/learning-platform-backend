@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import User, { UserPrimitives } from '../domain/user';
-import UserId from '../domain/userId';
+import User, { UserPrimitives } from '../../shared/domain/user';
+import UserId from '../../shared/domain/userId';
 
 @Injectable()
 export class UserRepository {
@@ -13,12 +13,12 @@ export class UserRepository {
 
   getUserById(id: UserId): User {
     const user = this.users.find((user) => user.id === id.toPrimitive());
-    return User.fromPrimitives(user);
+    return user ? User.fromPrimitives(user) : null;
   }
 
   getUserByEmail(email: string): User {
     const user = this.users.find((user) => user.email === email);
-    return User.fromPrimitives(user);
+    return user ? User.fromPrimitives(user) : null;
   }
 
   getAllUsers(): User[] {

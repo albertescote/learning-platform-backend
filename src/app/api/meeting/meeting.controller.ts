@@ -7,35 +7,46 @@ import {
   Param,
   Post,
   Put,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
 import { MeetingService } from '../../../context/meeting/service/meeting.service';
-import { MeetingResponseDto } from './meetingResponse.dto';
+import { CreateMeetingResponseDto } from './createMeetingResponse.dto';
 import { UpdateMeetingRequestDto } from './updateMeetingRequest.dto';
 import { CreateMeetingRequestDto } from './createMeetingRequest.dto';
+import { JwtAuthGuard } from '../../../context/auth/guards/jwt.guard';
+import { MeetingResponseDto } from './meetingResponse.dto';
+import { IdParamDto } from './idParam.dto';
 
 @Controller('meeting')
 export class MeetingController {
   constructor(private readonly meetingService: MeetingService) {}
 
   @Post('/')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(201)
-  create(@Body() body: CreateMeetingRequestDto): MeetingResponseDto {
+  async create(
+    @Request() req: { user: { email: string } },
+    @Body() body: CreateMeetingRequestDto,
+  ): Promise<CreateMeetingResponseDto> {
     console.log('[POST /meeting]: request received');
-    const response = this.meetingService.create(body);
+    const response = await this.meetingService.create(body, req.user.email);
     console.log('[POST /meeting]: response sent');
     return response;
   }
 
   @Get('/:id')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(200)
-  getById(@Param('id') id: string): MeetingResponseDto {
-    console.log(`[GET /meeting/${id}]: request received`);
-    const response = this.meetingService.getById(id);
-    console.log(`[GET /meeting/${id}]: response sent`);
+  getById(@Param() idParamDto: IdParamDto): MeetingResponseDto {
+    console.log(`[GET /meeting/${idParamDto.id}]: request received`);
+    const response = this.meetingService.getById(idParamDto.id);
+    console.log(`[GET /meeting/${idParamDto.id}]: response sent`);
     return response;
   }
 
   @Get('/')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(200)
   getAll(): MeetingResponseDto[] {
     console.log('[GET /meeting]: request received');
@@ -45,23 +56,30 @@ export class MeetingController {
   }
 
   @Put('/:id')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(200)
-  update(
-    @Param('id') id: string,
+  async update(
+    @Param() idParamDto: IdParamDto,
+    @Request() req: { user: { email: string } },
     @Body() body: UpdateMeetingRequestDto,
-  ): MeetingResponseDto {
-    console.log(`[PUT /meeting/${id}]: request received`);
-    const response = this.meetingService.update(id, body);
-    console.log(`[PUT /meeting/${id}]: response sent`);
+  ): Promise<MeetingResponseDto> {
+    console.log(`[PUT /meeting/${idParamDto.id}]: request received`);
+    const response = await this.meetingService.update(
+      idParamDto.id,
+      body,
+      req.user.email,
+    );
+    console.log(`[PUT /meeting/${idParamDto.id}]: response sent`);
     return response;
   }
 
   @Delete('/:id')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(204)
-  delete(@Param('id') id: string): void {
-    console.log(`[DELETE /meeting/${id}]: request received`);
-    this.meetingService.deleteById(id);
-    console.log(`[DELETE /meeting/${id}]: response sent`);
+  delete(@Param() idParamDto: IdParamDto): void {
+    console.log(`[DELETE /meeting/${idParamDto.id}]: request received`);
+    this.meetingService.deleteById(idParamDto.id);
+    console.log(`[DELETE /meeting/${idParamDto.id}]: response sent`);
     return;
   }
 }

@@ -15,7 +15,7 @@ export class MeetingRepository {
     const meeting = this.meetings.find(
       (meeting) => meeting.id === id.toPrimitive(),
     );
-    return Meeting.fromPrimitives(meeting);
+    return meeting ? Meeting.fromPrimitives(meeting) : null;
   }
 
   getAllMeetings(): Meeting[] {

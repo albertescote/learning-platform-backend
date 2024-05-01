@@ -1,47 +1,43 @@
-import UserId from './userId';
-import { Role } from './role';
+import UserId from '../../shared/domain/userId';
+import { Role } from '../../shared/domain/role';
 
-export interface UserPrimitives {
+export interface UserInfoDtoPrimitives {
   id: string;
   firstName: string;
   familyName: string;
   email: string;
-  password: string;
   role: string;
 }
 
-export default class User {
+export default class UserInfoDto {
   constructor(
     private id: UserId,
     private firstName: string,
     private familyName: string,
     private email: string,
-    private password: string,
     private role: Role,
   ) {}
 
-  static fromPrimitives(user: UserPrimitives): User {
+  static fromPrimitives(user: UserInfoDtoPrimitives): UserInfoDto {
     const role = Role[user.role];
     if (!role) {
       throw new Error('invalid role');
     }
-    return new User(
+    return new UserInfoDto(
       new UserId(user.id),
       user.firstName,
       user.familyName,
       user.email,
-      user.password,
       role,
     );
   }
 
-  toPrimitives(): UserPrimitives {
+  toPrimitives(): UserInfoDtoPrimitives {
     return {
       id: this.id.toPrimitive(),
       firstName: this.firstName,
       familyName: this.familyName,
       email: this.email,
-      password: this.password,
       role: this.role.toString(),
     };
   }

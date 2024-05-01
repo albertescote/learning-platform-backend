@@ -15,9 +15,5 @@ export class UpdateUserRequestDto {
 
   @IsNotEmpty()
   @IsString()
-  password: string;
-
-  @IsNotEmpty()
-  @IsString()
   role: string;
 }

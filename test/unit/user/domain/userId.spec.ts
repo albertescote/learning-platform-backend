@@ -1,5 +1,5 @@
 import { validate } from 'uuid';
-import UserId from '../../../../src/context/user/domain/userId';
+import UserId from '../../../../src/context/shared/domain/userId';
 
 describe('UserId should', () => {
   it('generate a random 10 digit value', () => {

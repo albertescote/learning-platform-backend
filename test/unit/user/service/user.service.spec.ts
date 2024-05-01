@@ -1,12 +1,15 @@
 import { UserService } from '../../../../src/context/user/service/user.service';
 import { UserRepository } from '../../../../src/context/user/infrastructure/userRepository';
 import { mock } from 'jest-mock-extended';
-import User from '../../../../src/context/user/domain/user';
-import UserId from '../../../../src/context/user/domain/userId';
+import User from '../../../../src/context/shared/domain/user';
+import UserId from '../../../../src/context/shared/domain/userId';
+import { PasswordService } from '../../../../src/context/shared/utils/password.service';
+import { Role } from '../../../../src/context/shared/domain/role';
 
 describe('User Service should', () => {
   const userRepositoryMock = mock<UserRepository>();
-  const userService = new UserService(userRepositoryMock);
+  const passwordService = new PasswordService();
+  const userService = new UserService(userRepositoryMock, passwordService);
 
   beforeEach(() => {
     jest.restoreAllMocks();
@@ -19,6 +22,7 @@ describe('User Service should', () => {
       'Doe',
       'email@example.com',
       '1234',
+      Role.Teacher,
     );
     userRepositoryMock.addUser.mockReturnValue(expectedRepositoryReturnValue);
 
@@ -27,6 +31,7 @@ describe('User Service should', () => {
       familyName: 'Doe',
       email: 'email@example.com',
       password: '1234',
+      role: Role.Teacher.toString(),
     });
 
     expect(newUser.id).toStrictEqual(
@@ -41,6 +46,7 @@ describe('User Service should', () => {
       'Doe',
       'email@example.com',
       '1234',
+      Role.Student,
     );
     userRepositoryMock.getUserById.mockReturnValue(
       expectedRepositoryReturnValue,
@@ -64,6 +70,7 @@ describe('User Service should', () => {
       'Doe',
       'email@example.com',
       '1234',
+      Role.Student,
     );
     const expectedRepositoryReturnValue = [newUser];
     userRepositoryMock.getAllUsers.mockReturnValue(
@@ -83,6 +90,7 @@ describe('User Service should', () => {
       'Doe',
       'email@example.com',
       '1234',
+      Role.Student,
     );
     userRepositoryMock.updateUser.mockReturnValue(
       expectedRepositoryReturnValue,

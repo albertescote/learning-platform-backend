@@ -4,7 +4,7 @@ import { PasswordService } from '../shared/utils/password.service';
 import { UserService } from './service/user.service';
 
 @Module({
-  providers: [UserRepository, PasswordService],
+  providers: [UserService, UserRepository, PasswordService],
   exports: [UserService],
 })
 export class UserModule {}

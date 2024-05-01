@@ -12,8 +12,9 @@ import { UserResponseDto } from './userResponse.dto';
 import { UpdateUserRequestDto } from './updateUserRequest.dto';
 import { CreateUserRequestDto } from './createUserRequest.dto';
 import { UserService } from '../../../context/user/service/user.service';
+import { IdParamDto } from './idParam.dto';
 
-@Controller('user')
+@Controller('/user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -28,10 +29,10 @@ export class UserController {
 
   @Get('/:id')
   @HttpCode(200)
-  getById(@Param('id') id: string): UserResponseDto {
-    console.log(`[GET /user/${id}]: request received`);
-    const response = this.userService.getById(id);
-    console.log(`[GET /user/${id}]: response sent`);
+  getById(@Param() idParamDto: IdParamDto): UserResponseDto {
+    console.log(`[GET /user/${idParamDto.id}]: request received`);
+    const response = this.userService.getById(idParamDto.id);
+    console.log(`[GET /user/${idParamDto.id}]: response sent`);
     return response;
   }
 
@@ -47,21 +48,21 @@ export class UserController {
   @Put('/:id')
   @HttpCode(200)
   update(
-    @Param('id') id: string,
+    @Param() idParamDto: IdParamDto,
     @Body() body: UpdateUserRequestDto,
   ): UserResponseDto {
-    console.log(`[PUT /user/${id}]: request received`);
-    const response = this.userService.update(id, body);
-    console.log(`[PUT /user/${id}]: response sent`);
+    console.log(`[PUT /user/${idParamDto.id}]: request received`);
+    const response = this.userService.update(idParamDto.id, body);
+    console.log(`[PUT /user/${idParamDto.id}]: response sent`);
     return response;
   }
 
   @Delete('/:id')
   @HttpCode(204)
-  delete(@Param('id') id: string): void {
-    console.log(`[DELETE /user/${id}]: request received`);
-    this.userService.deleteById(id);
-    console.log(`[DELETE /user/${id}]: response sent`);
+  delete(@Param() idParamDto: IdParamDto): void {
+    console.log(`[DELETE /user/${idParamDto.id}]: request received`);
+    this.userService.deleteById(idParamDto.id);
+    console.log(`[DELETE /user/${idParamDto.id}]: response sent`);
     return;
   }
 }

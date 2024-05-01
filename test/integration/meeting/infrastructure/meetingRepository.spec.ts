@@ -1,12 +1,17 @@
 import { MeetingRepository } from '../../../../src/context/meeting/infrastructure/meetingRepository';
 import Meeting from '../../../../src/context/meeting/domain/meeting';
 import MeetingId from '../../../../src/context/meeting/domain/meetingId';
+import { Role } from '../../../../src/context/shared/domain/role';
 
 describe('Meeting Repository should', () => {
   const meetingRepository = new MeetingRepository();
 
   it('CRUD for meeting object', () => {
-    const newMeeting: Meeting = new Meeting(MeetingId.generate(), 'topic');
+    const newMeeting: Meeting = new Meeting(
+      MeetingId.generate(),
+      'topic',
+      Role.Student,
+    );
 
     const addedMeeting = meetingRepository.addMeeting(newMeeting);
 
@@ -15,7 +20,11 @@ describe('Meeting Repository should', () => {
     expect(allMeetings.length).toStrictEqual(1);
     expect(allMeetings[0]).toStrictEqual(newMeeting);
 
-    const newUpdatedMeeting = new Meeting(MeetingId.generate(), 'topic-2');
+    const newUpdatedMeeting = new Meeting(
+      MeetingId.generate(),
+      'topic-2',
+      Role.Teacher,
+    );
     const updatedMeeting = meetingRepository.updateMeeting(
       new MeetingId(addedMeeting.toPrimitives().id),
       newUpdatedMeeting,

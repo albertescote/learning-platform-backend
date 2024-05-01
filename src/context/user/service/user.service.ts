@@ -1,17 +1,24 @@
 import { Injectable } from '@nestjs/common';
-import User from '../domain/user';
-import UserId from '../domain/userId';
+import User from '../../shared/domain/user';
+import UserId from '../../shared/domain/userId';
 import { UserRepository } from '../infrastructure/userRepository';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { UserQuery } from './user.query';
 import { PasswordService } from '../../shared/utils/password.service';
-import { Role } from '../domain/role';
+import { Role } from '../../shared/domain/role';
 
-export interface UserRequest {
+export interface CreateUserRequest {
   firstName: string;
   familyName: string;
   email: string;
   password: string;
+  role: string;
+}
+
+export interface UpdateUserRequest {
+  firstName: string;
+  familyName: string;
+  email: string;
   role: string;
 }
 
@@ -23,15 +30,6 @@ export interface UserResponse {
   role: string;
 }
 
-export interface CompleteUserResponse {
-  id: string;
-  firstName: string;
-  familyName: string;
-  email: string;
-  password: string;
-  role: string;
-}
-
 @Injectable()
 @QueryHandler(UserQuery)
 export class UserService implements IQueryHandler<UserQuery> {
@@ -40,7 +38,7 @@ export class UserService implements IQueryHandler<UserQuery> {
     private passwordService: PasswordService,
   ) {}
 
-  async create(request: UserRequest): Promise<UserResponse> {
+  async create(request: CreateUserRequest): Promise<UserResponse> {
     const encryptedPassword = await this.passwordService.hashPassword(
       request.password,
     );
@@ -48,6 +46,7 @@ export class UserService implements IQueryHandler<UserQuery> {
     if (!role) {
       throw new Error('invalid role');
     }
+    this.checkExistingEmail(request.email);
     const user = new User(
       UserId.generate(),
       request.firstName,
@@ -69,6 +68,9 @@ export class UserService implements IQueryHandler<UserQuery> {
 
   getById(id: string): UserResponse {
     const storedUser = this.userRepository.getUserById(new UserId(id));
+    if (!storedUser) {
+      throw new Error('user not found');
+    }
     const userPrimitives = storedUser.toPrimitives();
     return {
       id: userPrimitives.id,
@@ -93,10 +95,21 @@ export class UserService implements IQueryHandler<UserQuery> {
     });
   }
 
-  update(id: string, request: UserRequest): UserResponse {
+  update(id: string, request: UpdateUserRequest): UserResponse {
+    const oldUser = this.userRepository.getUserById(new UserId(id));
+    if (!oldUser) {
+      throw new Error('user not found');
+    }
+    if (oldUser.toPrimitives().email !== request.email) {
+      this.checkExistingEmail(oldUser.toPrimitives().email);
+    }
     const updatedUser = this.userRepository.updateUser(
       new UserId(id),
-      User.fromPrimitives({ ...request, id }),
+      User.fromPrimitives({
+        ...request,
+        id,
+        password: oldUser.toPrimitives().password,
+      }),
     );
     const userPrimitives = updatedUser.toPrimitives();
     return {
@@ -116,8 +129,14 @@ export class UserService implements IQueryHandler<UserQuery> {
     return;
   }
 
-  async execute(query: UserQuery): Promise<CompleteUserResponse> {
-    const storedUser = this.userRepository.getUserByEmail(query.email);
-    return storedUser.toPrimitives();
+  async execute(query: UserQuery): Promise<User> {
+    return this.userRepository.getUserByEmail(query.email);
+  }
+
+  private checkExistingEmail(email: string): void {
+    const existingUserWithSameEmail = this.userRepository.getUserByEmail(email);
+    if (!!existingUserWithSameEmail) {
+      throw new Error('a user with this email already exists');
+    }
   }
 }
