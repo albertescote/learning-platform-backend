@@ -42,6 +42,9 @@ export class MeetingService {
   ): Promise<CreateMeetingResponse> {
     const user = await this.moduleConnectors.obtainUserInformation(email);
     const parsedRole = user.getRole();
+    if (parsedRole !== Role.Teacher) {
+      throw new Error('unauthorized: you are not able to create a meeting');
+    }
     const meeting = new Meeting(
       MeetingId.generate(),
       request.topic,
@@ -81,6 +84,9 @@ export class MeetingService {
     email: string,
   ): Promise<MeetingResponse> {
     const user = await this.moduleConnectors.obtainUserInformation(email);
+    if (user.getRole() !== Role.Teacher) {
+      throw new Error('unauthorized: you are not able to create a meeting');
+    }
     const updatedMeeting = this.meetingRepository.updateMeeting(
       new MeetingId(id),
       Meeting.fromPrimitives({
