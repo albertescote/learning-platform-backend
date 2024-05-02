@@ -88,11 +88,11 @@ export class MeetingService {
     });
   }
 
-  async update(
+  update(
     id: string,
     request: MeetingRequest,
     userAuthInfo: UserAuthInfo,
-  ): Promise<MeetingResponse> {
+  ): MeetingResponse {
     const oldMeeting = this.meetingRepository.getMeetingById(new MeetingId(id));
     if (!oldMeeting) {
       throw new MeetingNotFoundException(id);

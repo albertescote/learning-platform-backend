@@ -1,114 +1,329 @@
+import { Test, TestingModule } from '@nestjs/testing';
 import { MeetingService } from '../../../../src/context/meeting/service/meeting.service';
 import { MeetingRepository } from '../../../../src/context/meeting/infrastructure/meetingRepository';
-import { mock } from 'jest-mock-extended';
-import Meeting from '../../../../src/context/meeting/domain/meeting';
-import MeetingId from '../../../../src/context/meeting/domain/meetingId';
-import { Role } from '../../../../src/context/shared/domain/role';
 import RsaSigner from '../../../../src/context/shared/infrastructure/rsaSigner';
 import { ModuleConnectors } from '../../../../src/context/shared/infrastructure/moduleConnectors';
+import { WrongPermissionsException } from '../../../../src/context/meeting/exceptions/wrongPermissionsException';
+import { NotAbleToExecuteMeetingDbTransactionException } from '../../../../src/context/meeting/exceptions/notAbleToExecuteMeetingDbTransactionException';
+import UserId from '../../../../src/context/shared/domain/userId';
+import MeetingId from '../../../../src/context/meeting/domain/meetingId';
+import {
+  ZOOM_MEETING_SDK_KEY,
+  ZOOM_MEETING_SDK_SECRET,
+} from '../../../../src/context/meeting/config';
+import { SupportedAlgorithms } from '../../../../src/context/meeting/domain/supportedAlgorithms';
+import { MeetingNotFoundException } from '../../../../src/context/meeting/exceptions/meetingNotFoundException';
+import Meeting from '../../../../src/context/meeting/domain/meeting';
+import { Role } from '../../../../src/context/shared/domain/role';
 
-describe('Meeting Service should', () => {
-  const meetingRepositoryMock = mock<MeetingRepository>();
-  const rsaSigner = new RsaSigner();
-  const moduleConnectors = mock<ModuleConnectors>();
-  const meetingService = new MeetingService(
-    meetingRepositoryMock,
-    rsaSigner,
-    moduleConnectors,
-  );
+describe('MeetingService', () => {
+  let service: MeetingService;
+  let meetingRepository: MeetingRepository;
+  let rsaSigner: RsaSigner;
+  let moduleConnectors: ModuleConnectors;
+  const userId = UserId.generate().toPrimitive();
+  const meetingId = MeetingId.generate().toPrimitive();
 
-  beforeEach(() => {
-    jest.restoreAllMocks();
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        MeetingService,
+        {
+          provide: MeetingRepository,
+          useValue: {
+            addMeeting: jest.fn(),
+            getMeetingById: jest.fn(),
+            getAllMeetings: jest.fn(),
+            updateMeeting: jest.fn(),
+            deleteMeeting: jest.fn(),
+          },
+        },
+        {
+          provide: RsaSigner,
+          useValue: {
+            sign: jest.fn(),
+          },
+        },
+        {
+          provide: ModuleConnectors,
+          useValue: {
+            obtainUserInformation: jest.fn(),
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get<MeetingService>(MeetingService);
+    meetingRepository = module.get<MeetingRepository>(MeetingRepository);
+    rsaSigner = module.get<RsaSigner>(RsaSigner);
+    moduleConnectors = module.get<ModuleConnectors>(ModuleConnectors);
   });
 
-  it('create a new meeting', async () => {
-    const expectedRepositoryReturnValue: Meeting = new Meeting(
-      MeetingId.generate(),
-      'topic',
-      Role.Teacher,
-    );
-    meetingRepositoryMock.addMeeting.mockReturnValue(
-      expectedRepositoryReturnValue,
-    );
+  it('should create a meeting successfully', async () => {
+    const request = { topic: 'Test Meeting', expirationSeconds: 3600 };
+    const userAuthInfo = { email: 'teacher@example.com', id: userId };
+    const user = { getRole: () => 'Teacher' };
+    const meetingResponse = {
+      id: MeetingId.generate().toPrimitive(),
+      topic: 'Test Meeting',
+      role: 'Teacher',
+      signature: 'mockedSignature',
+      ownerId: userId,
+    };
 
-    const newMeeting = await meetingService.create(
-      { topic: 'topic' },
-      'email@test.com',
+    (moduleConnectors.obtainUserInformation as jest.Mock).mockResolvedValue(
+      user,
     );
+    (meetingRepository.addMeeting as jest.Mock).mockReturnValueOnce({
+      toPrimitives: () => meetingResponse,
+    });
+    (rsaSigner.sign as jest.Mock).mockReturnValueOnce('mockedSignature');
 
-    expect(newMeeting.id).toStrictEqual(
-      expectedRepositoryReturnValue.toPrimitives().id,
+    const result = await service.create(request, userAuthInfo);
+
+    expect(moduleConnectors.obtainUserInformation).toHaveBeenCalledWith(
+      userAuthInfo.email,
     );
-    expect(meetingRepositoryMock.addMeeting).toHaveBeenCalled();
+    expect(meetingRepository.addMeeting).toHaveBeenCalledWith(
+      new Meeting(expect.any(MeetingId), 'Test Meeting', Role.Teacher, userId),
+    );
+    expect(rsaSigner.sign).toHaveBeenCalledWith({
+      alg: SupportedAlgorithms.HS256,
+      header: { alg: SupportedAlgorithms.HS256, typ: 'JWT' },
+      payload: {
+        app_key: ZOOM_MEETING_SDK_KEY,
+        exp: expect.any(Number) as number,
+        iat: expect.any(Number) as number,
+        role_type: 1,
+        tpc: 'Test Meeting',
+        version: 1,
+      },
+      secret: ZOOM_MEETING_SDK_SECRET,
+    });
+    expect(result).toEqual(meetingResponse);
   });
-  it('get a meeting by id', () => {
-    const expectedRepositoryReturnValue: Meeting = new Meeting(
-      MeetingId.generate(),
-      'topic',
-      Role.Student,
-    );
-    meetingRepositoryMock.getMeetingById.mockReturnValue(
-      expectedRepositoryReturnValue,
+  it('should throw WrongPermissionsException if user is not a teacher', async () => {
+    const request = { topic: 'Test Meeting' };
+    const userAuthInfo = { email: 'student@example.com', id: userId };
+    const user = { getRole: () => 'Student' };
+
+    (moduleConnectors.obtainUserInformation as jest.Mock).mockResolvedValue(
+      user,
     );
 
-    const meeting = meetingService.getById(
-      expectedRepositoryReturnValue.toPrimitives().id,
-    );
-
-    expect(meeting.id).toStrictEqual(
-      expectedRepositoryReturnValue.toPrimitives().id,
-    );
-    expect(meetingRepositoryMock.getMeetingById).toHaveBeenCalledWith(
-      new MeetingId(expectedRepositoryReturnValue.toPrimitives().id),
-    );
-  });
-  it('get all meetings', () => {
-    const newMeeting: Meeting = new Meeting(
-      MeetingId.generate(),
-      'topic',
-      Role.Teacher,
-    );
-    const expectedRepositoryReturnValue = [newMeeting];
-    meetingRepositoryMock.getAllMeetings.mockReturnValue(
-      expectedRepositoryReturnValue,
-    );
-
-    const allMeetings = meetingService.getAll();
-
-    expect(allMeetings.length).toStrictEqual(1);
-    expect(allMeetings[0].id).toStrictEqual(newMeeting.toPrimitives().id);
-    expect(meetingRepositoryMock.getAllMeetings).toHaveBeenCalled();
-  });
-  it('update a meeting', async () => {
-    const expectedRepositoryReturnValue: Meeting = new Meeting(
-      MeetingId.generate(),
-      'topic',
-      Role.Teacher,
-    );
-    meetingRepositoryMock.updateMeeting.mockReturnValue(
-      expectedRepositoryReturnValue,
-    );
-
-    const meeting = await meetingService.update(
-      expectedRepositoryReturnValue.toPrimitives().id,
-      expectedRepositoryReturnValue.toPrimitives(),
-      'email@test.com',
-    );
-
-    expect(meeting.id).toStrictEqual(
-      expectedRepositoryReturnValue.toPrimitives().id,
-    );
-    expect(meetingRepositoryMock.updateMeeting).toHaveBeenCalledWith(
-      new MeetingId(expectedRepositoryReturnValue.toPrimitives().id),
-      expectedRepositoryReturnValue,
+    await expect(service.create(request, userAuthInfo)).rejects.toThrow(
+      WrongPermissionsException,
     );
   });
-  it('delete a meeting', () => {
-    meetingRepositoryMock.deleteMeeting.mockReturnValue(true);
+  it('should throw NotAbleToExecuteMeetingDbTransactionException if meeting addition fails', async () => {
+    const request = { topic: 'Test Meeting' };
+    const userAuthInfo = { email: 'teacher@example.com', id: userId };
+    const user = { getRole: () => 'Teacher' };
 
-    const meetingId = MeetingId.generate();
-    meetingService.deleteById(meetingId.toPrimitive());
+    (moduleConnectors.obtainUserInformation as jest.Mock).mockResolvedValue(
+      user,
+    );
+    (meetingRepository.addMeeting as jest.Mock).mockReturnValueOnce(null);
 
-    expect(meetingRepositoryMock.deleteMeeting).toHaveBeenCalledWith(meetingId);
+    await expect(service.create(request, userAuthInfo)).rejects.toThrow(
+      NotAbleToExecuteMeetingDbTransactionException,
+    );
+  });
+  it('should return meeting by ID', () => {
+    const meetingResponse = {
+      id: meetingId,
+      topic: 'Test Meeting',
+      role: 'Teacher',
+    };
+
+    (meetingRepository.getMeetingById as jest.Mock).mockReturnValueOnce({
+      toPrimitives: () => meetingResponse,
+    });
+
+    const result = service.getById(meetingId);
+
+    expect(meetingRepository.getMeetingById).toHaveBeenCalledWith(
+      new MeetingId(meetingId),
+    );
+    expect(result).toEqual(meetingResponse);
+  });
+  it('should throw MeetingNotFoundException if meeting does not exist', () => {
+    (meetingRepository.getMeetingById as jest.Mock).mockReturnValueOnce(null);
+
+    expect(() => service.getById(meetingId)).toThrow(MeetingNotFoundException);
+  });
+  it('should return all meetings', () => {
+    const meetings = [
+      { id: meetingId, topic: 'Meeting 1', role: 'Teacher' },
+      {
+        id: MeetingId.generate().toPrimitive(),
+        topic: 'Meeting 2',
+        role: 'Student',
+      },
+    ];
+
+    (meetingRepository.getAllMeetings as jest.Mock).mockReturnValueOnce(
+      meetings.map((meeting) => ({ toPrimitives: () => meeting })),
+    );
+
+    const result = service.getAll();
+
+    expect(meetingRepository.getAllMeetings).toHaveBeenCalled();
+    expect(result).toEqual(meetings);
+  });
+  it('should return an empty array if no meetings are found', () => {
+    (meetingRepository.getAllMeetings as jest.Mock).mockReturnValueOnce([]);
+
+    const result = service.getAll();
+
+    expect(meetingRepository.getAllMeetings).toHaveBeenCalled();
+    expect(result).toEqual([]);
+  });
+  it('should update meeting successfully', () => {
+    const request = { topic: 'Updated Meeting', expirationSeconds: 3600 };
+    const userAuthInfo = { email: 'teacher@example.com', id: userId };
+    const oldMeeting = {
+      id: meetingId,
+      topic: 'Old Meeting',
+      role: 'Teacher',
+      ownerId: userId,
+    };
+    const updatedMeeting = {
+      id: meetingId,
+      ...request,
+      role: 'Teacher',
+      ownerId: userId,
+    };
+
+    (meetingRepository.getMeetingById as jest.Mock).mockReturnValueOnce({
+      toPrimitives: () => oldMeeting,
+    });
+    (meetingRepository.updateMeeting as jest.Mock).mockReturnValueOnce({
+      toPrimitives: () => updatedMeeting,
+    });
+
+    const result = service.update(meetingId, request, userAuthInfo);
+
+    expect(meetingRepository.getMeetingById).toHaveBeenCalledWith(
+      new MeetingId(meetingId),
+    );
+    expect(meetingRepository.updateMeeting).toHaveBeenCalledWith(
+      new MeetingId(meetingId),
+      Meeting.fromPrimitives(updatedMeeting),
+    );
+    expect(result).toEqual(updatedMeeting);
+  });
+  it('should throw MeetingNotFoundException if meeting does not exist', () => {
+    const request = { topic: 'Updated Meeting' };
+    const userAuthInfo = { email: 'teacher@example.com', id: userId };
+
+    (meetingRepository.getMeetingById as jest.Mock).mockReturnValueOnce(null);
+
+    expect(() => service.update(meetingId, request, userAuthInfo)).toThrow(
+      MeetingNotFoundException,
+    );
+  });
+  it('should throw WrongPermissionsException if user does not have permission to update', () => {
+    const request = { topic: 'Updated Meeting' };
+    const userAuthInfo = { email: 'student@example.com', id: userId };
+    const oldMeeting = {
+      id: meetingId,
+      topic: 'Old Meeting',
+      role: 'Teacher',
+      ownerId: UserId.generate().toPrimitive(),
+    };
+
+    (meetingRepository.getMeetingById as jest.Mock).mockReturnValueOnce({
+      toPrimitives: () => oldMeeting,
+    });
+
+    expect(() => service.update(meetingId, request, userAuthInfo)).toThrow(
+      WrongPermissionsException,
+    );
+  });
+  it('should throw NotAbleToExecuteMeetingDbTransactionException if update fails', () => {
+    const request = { topic: 'Updated Meeting' };
+    const userAuthInfo = { email: 'teacher@example.com', id: userId };
+    const oldMeeting = {
+      id: meetingId,
+      topic: 'Old Meeting',
+      role: 'Teacher',
+      ownerId: userId,
+    };
+
+    (meetingRepository.getMeetingById as jest.Mock).mockReturnValueOnce({
+      toPrimitives: () => oldMeeting,
+    });
+    (meetingRepository.updateMeeting as jest.Mock).mockReturnValueOnce(null);
+
+    expect(() => service.update(meetingId, request, userAuthInfo)).toThrow(
+      NotAbleToExecuteMeetingDbTransactionException,
+    );
+  });
+  it('should delete meeting successfully', () => {
+    const userAuthInfo = { email: 'teacher@example.com', id: userId };
+    const oldMeeting = {
+      id: meetingId,
+      topic: 'Old Meeting',
+      role: 'Teacher',
+      ownerId: userId,
+    };
+
+    (meetingRepository.getMeetingById as jest.Mock).mockReturnValueOnce({
+      toPrimitives: () => oldMeeting,
+    });
+    (meetingRepository.deleteMeeting as jest.Mock).mockReturnValueOnce(true);
+
+    expect(() => service.deleteById(meetingId, userAuthInfo)).not.toThrow();
+    expect(meetingRepository.getMeetingById).toHaveBeenCalledWith(
+      new MeetingId(meetingId),
+    );
+    expect(meetingRepository.deleteMeeting).toHaveBeenCalledWith(
+      new MeetingId(meetingId),
+    );
+  });
+  it('should throw MeetingNotFoundException if meeting does not exist', () => {
+    const userAuthInfo = { email: 'teacher@example.com', id: userId };
+
+    (meetingRepository.getMeetingById as jest.Mock).mockReturnValueOnce(null);
+
+    expect(() => service.deleteById(meetingId, userAuthInfo)).toThrow(
+      MeetingNotFoundException,
+    );
+  });
+  it('should throw WrongPermissionsException if user does not have permission to delete', () => {
+    const userAuthInfo = { email: 'student@example.com', id: userId };
+    const oldMeeting = {
+      id: meetingId,
+      topic: 'Old Meeting',
+      role: 'Teacher',
+      ownerId: UserId.generate().toPrimitive(),
+    };
+
+    (meetingRepository.getMeetingById as jest.Mock).mockReturnValueOnce({
+      toPrimitives: () => oldMeeting,
+    });
+
+    expect(() => service.deleteById(meetingId, userAuthInfo)).toThrow(
+      WrongPermissionsException,
+    );
+  });
+  it('should throw NotAbleToExecuteMeetingDbTransactionException if delete fails', () => {
+    const userAuthInfo = { email: 'teacher@example.com', id: userId };
+    const oldMeeting = {
+      id: meetingId,
+      topic: 'Old Meeting',
+      role: 'Teacher',
+      ownerId: userId,
+    };
+
+    (meetingRepository.getMeetingById as jest.Mock).mockReturnValueOnce({
+      toPrimitives: () => oldMeeting,
+    });
+    (meetingRepository.deleteMeeting as jest.Mock).mockReturnValueOnce(false);
+
+    expect(() => service.deleteById(meetingId, userAuthInfo)).toThrow(
+      NotAbleToExecuteMeetingDbTransactionException,
+    );
   });
 });

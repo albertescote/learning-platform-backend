@@ -2,15 +2,18 @@ import { MeetingRepository } from '../../../../src/context/meeting/infrastructur
 import Meeting from '../../../../src/context/meeting/domain/meeting';
 import MeetingId from '../../../../src/context/meeting/domain/meetingId';
 import { Role } from '../../../../src/context/shared/domain/role';
+import UserId from '../../../../src/context/shared/domain/userId';
 
 describe('Meeting Repository should', () => {
   const meetingRepository = new MeetingRepository();
 
   it('CRUD for meeting object', () => {
+    const ownerId = UserId.generate();
     const newMeeting: Meeting = new Meeting(
       MeetingId.generate(),
       'topic',
       Role.Student,
+      ownerId.toPrimitive(),
     );
 
     const addedMeeting = meetingRepository.addMeeting(newMeeting);
@@ -24,6 +27,7 @@ describe('Meeting Repository should', () => {
       MeetingId.generate(),
       'topic-2',
       Role.Teacher,
+      ownerId.toPrimitive(),
     );
     const updatedMeeting = meetingRepository.updateMeeting(
       new MeetingId(addedMeeting.toPrimitives().id),
