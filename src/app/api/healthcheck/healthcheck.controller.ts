@@ -6,7 +6,6 @@ export class HealthcheckController {
   @Get('/')
   @HttpCode(200)
   create(): void {
-    console.log('[GET /]: healthcheck request received');
     return;
   }
 }

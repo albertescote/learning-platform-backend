@@ -1,6 +1,5 @@
 # Stage 1 - building node_modules and dist folder
 FROM node:18.20-alpine as builder
-RUN apk add python3 make g++ && apk update
 COPY package*.json ./
 RUN npm ci
 COPY . .
