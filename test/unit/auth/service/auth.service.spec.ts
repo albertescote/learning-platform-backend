@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { JwtService } from '@nestjs/jwt';
 import { ModuleConnectors } from '../../../../src/context/shared/infrastructure/moduleConnectors';
 import { AuthService } from '../../../../src/context/auth/service/auth.service';
 import { PasswordService } from '../../../../src/context/shared/utils/password.service';
@@ -9,15 +8,18 @@ import { InvalidPasswordException } from '../../../../src/context/auth/exception
 import UserId from '../../../../src/context/shared/domain/userId';
 import {
   TOKEN_EXPIRES_IN_SECONDS,
+  TOKEN_ISSUER,
   TOKEN_TYPE,
 } from '../../../../src/context/auth/config';
 import ms from 'ms';
+import { JoseWrapper } from '../../../../src/context/shared/infrastructure/joseWrapper';
+import { mock } from 'jest-mock-extended';
 
 describe('AuthService', () => {
   let service: AuthService;
   let moduleConnectors: ModuleConnectors;
   let passwordService: PasswordService;
-  let jwtService: JwtService;
+  let joseWrapper: JoseWrapper;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -36,10 +38,8 @@ describe('AuthService', () => {
           },
         },
         {
-          provide: JwtService,
-          useValue: {
-            sign: jest.fn(),
-          },
+          provide: 'JoseWrapperInitialized',
+          useValue: mock<JoseWrapper>(),
         },
       ],
     }).compile();
@@ -47,7 +47,7 @@ describe('AuthService', () => {
     service = module.get<AuthService>(AuthService);
     moduleConnectors = module.get<ModuleConnectors>(ModuleConnectors);
     passwordService = module.get<PasswordService>(PasswordService);
-    jwtService = module.get<JwtService>(JwtService);
+    joseWrapper = module.get<JoseWrapper>('JoseWrapperInitialized');
   });
 
   it('should validate user successfully', async () => {
@@ -123,14 +123,19 @@ describe('AuthService', () => {
     };
     const expectedAccessToken = 'access_token';
 
-    (jwtService.sign as jest.Mock).mockReturnValue(expectedAccessToken);
+    (joseWrapper.signJwt as jest.Mock).mockResolvedValueOnce(
+      expectedAccessToken,
+    );
 
     const result = await service.login(user);
 
-    expect(jwtService.sign).toHaveBeenCalledWith({
-      email: user.email,
-      sub: user.id,
-    });
+    expect(joseWrapper.signJwt).toHaveBeenCalledWith(
+      {
+        email: user.email,
+        sub: user.id,
+      },
+      TOKEN_ISSUER,
+    );
     expect(result.access_token).toBe(expectedAccessToken);
     expect(result.token_type).toBe(TOKEN_TYPE);
     expect(result.expires_in).toBe(ms(TOKEN_EXPIRES_IN_SECONDS));

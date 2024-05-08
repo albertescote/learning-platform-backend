@@ -117,7 +117,7 @@ export class UserService implements IQueryHandler<UserQuery> {
       throw new WrongPermissionsException('update user');
     }
     if (oldUser.toPrimitives().email !== request.email) {
-      this.checkExistingEmail(oldUser.toPrimitives().email);
+      this.checkExistingEmail(request.email);
     }
     const updatedUser = this.userRepository.updateUser(
       new UserId(id),

@@ -15,8 +15,8 @@ import { UpdateUserRequestDto } from './updateUserRequest.dto';
 import { CreateUserRequestDto } from './createUserRequest.dto';
 import { UserService } from '../../../context/user/service/user.service';
 import { IdParamDto } from './idParam.dto';
-import { JwtAuthGuard } from '../guards/jwt.guard';
 import { UserAuthInfo } from '../../../context/shared/domain/userAuthInfo';
+import { JwtCustomGuard } from '../../../context/auth/guards/jwt-custom.guard';
 
 @Controller('/user')
 export class UserController {
@@ -29,21 +29,21 @@ export class UserController {
   }
 
   @Get('/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtCustomGuard)
   @HttpCode(200)
   getById(@Param() idParamDto: IdParamDto): UserResponseDto {
     return this.userService.getById(idParamDto.id);
   }
 
   @Get('/')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtCustomGuard)
   @HttpCode(200)
   getAll(): UserResponseDto[] {
     return this.userService.getAll();
   }
 
   @Put('/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtCustomGuard)
   @HttpCode(200)
   update(
     @Param() idParamDto: IdParamDto,
@@ -54,7 +54,7 @@ export class UserController {
   }
 
   @Delete('/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtCustomGuard)
   @HttpCode(204)
   delete(
     @Request() req: { user: UserAuthInfo },
