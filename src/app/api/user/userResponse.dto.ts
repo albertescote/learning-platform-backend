@@ -3,4 +3,5 @@ export interface UserResponseDto {
   firstName: string;
   familyName: string;
   email: string;
+  role: string;
 }
