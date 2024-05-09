@@ -52,6 +52,7 @@ export class AuthService {
     const payload: AccessTokenPayload = {
       email: user.email,
       sub: user.id,
+      role: user.role,
     };
     const jwt = await this.joseWrapper.signJwt(payload, TOKEN_ISSUER);
     return {
@@ -74,6 +75,10 @@ export class AuthService {
     if (!user) {
       throw new InvalidEmailException(accessTokenPayload.email);
     }
-    return { email: accessTokenPayload.email, sub: accessTokenPayload.sub };
+    return {
+      email: accessTokenPayload.email,
+      sub: accessTokenPayload.sub,
+      role: accessTokenPayload.role,
+    };
   }
 }
