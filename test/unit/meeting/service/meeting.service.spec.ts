@@ -92,7 +92,6 @@ describe('MeetingService', () => {
       const meetingResponse = {
         id: MeetingId.generate().toPrimitive(),
         topic: 'Test Meeting',
-        role: 'Teacher',
         signature: 'mockedSignature',
         ownerId: userId,
       };
@@ -115,7 +114,6 @@ describe('MeetingService', () => {
         new Meeting(
           expect.any(MeetingId),
           'Test Meeting',
-          Role.Teacher,
           new UserId(userId),
           new UserId(request.studentId),
         ),
@@ -226,17 +224,40 @@ describe('MeetingService', () => {
     });
   });
   describe('for getById meeting method', () => {
-    it('should return meeting by ID', () => {
+    it('should return meeting by ID to the owner', () => {
       const meetingResponse = {
         id: meetingId,
         topic: 'Test Meeting',
-        role: 'Teacher',
         ownerId: userId,
         studentId: UserId.generate().toPrimitive(),
       };
       const userAuthInfo = {
         email: 'teacher@example.com',
         id: userId,
+        role: Role.Teacher.toString(),
+      };
+
+      (meetingRepository.getMeetingById as jest.Mock).mockReturnValueOnce({
+        toPrimitives: () => meetingResponse,
+      });
+
+      const result = service.getById(meetingId, userAuthInfo);
+
+      expect(meetingRepository.getMeetingById).toHaveBeenCalledWith(
+        new MeetingId(meetingId),
+      );
+      expect(result).toEqual(meetingResponse);
+    });
+    it('should return meeting by ID to the student', () => {
+      const meetingResponse = {
+        id: meetingId,
+        topic: 'Test Meeting',
+        ownerId: userId,
+        studentId: UserId.generate().toPrimitive(),
+      };
+      const userAuthInfo = {
+        email: 'teacher@example.com',
+        id: meetingResponse.studentId,
         role: Role.Teacher.toString(),
       };
 
@@ -263,11 +284,10 @@ describe('MeetingService', () => {
         MeetingNotFoundException,
       );
     });
-    it('should throw WrongPermissionsException if meeting does not exist', () => {
+    it('should throw WrongPermissionsException the requester is not the owner nor the student', () => {
       const meetingResponse = {
         id: meetingId,
         topic: 'Test Meeting',
-        role: 'Teacher',
         ownerId: UserId.generate().toPrimitive(),
         studentId: UserId.generate().toPrimitive(),
       };
@@ -291,14 +311,12 @@ describe('MeetingService', () => {
         {
           id: meetingId,
           topic: 'Meeting 1',
-          role: 'Teacher',
           ownerId: userId,
           studentId: UserId.generate().toPrimitive(),
         },
         {
           id: MeetingId.generate().toPrimitive(),
           topic: 'Meeting 2',
-          role: 'Teacher',
           ownerId: userId,
           studentId: UserId.generate().toPrimitive(),
         },
@@ -346,14 +364,12 @@ describe('MeetingService', () => {
       const oldMeeting = {
         id: meetingId,
         topic: 'Old Meeting',
-        role: 'Teacher',
         ownerId: userId,
         studentId: UserId.generate().toPrimitive(),
       };
       const updatedMeeting = {
         id: meetingId,
         ...request,
-        role: 'Teacher',
         ownerId: userId,
       };
       (meetingRepository.getMeetingById as jest.Mock).mockReturnValueOnce({
@@ -415,7 +431,6 @@ describe('MeetingService', () => {
       const oldMeeting = {
         id: meetingId,
         topic: 'Old Meeting',
-        role: 'Teacher',
         ownerId: UserId.generate().toPrimitive(),
         studentId: UserId.generate().toPrimitive(),
       };
@@ -440,7 +455,6 @@ describe('MeetingService', () => {
       const oldMeeting = {
         id: meetingId,
         topic: 'Old Meeting',
-        role: 'Teacher',
         ownerId: userId,
         studentId: UserId.generate().toPrimitive(),
       };
@@ -468,7 +482,6 @@ describe('MeetingService', () => {
       const oldMeeting = {
         id: meetingId,
         topic: 'Old Meeting',
-        role: 'Teacher',
         ownerId: userId,
         studentId: UserId.generate().toPrimitive(),
       };
@@ -497,7 +510,6 @@ describe('MeetingService', () => {
       const oldMeeting = {
         id: meetingId,
         topic: 'Old Meeting',
-        role: 'Teacher',
         ownerId: userId,
       };
       const student = new User(
@@ -531,7 +543,6 @@ describe('MeetingService', () => {
       const oldMeeting = {
         id: meetingId,
         topic: 'Old Meeting',
-        role: 'Teacher',
         ownerId: userId,
       };
 
@@ -569,7 +580,6 @@ describe('MeetingService', () => {
       const oldMeeting = {
         id: meetingId,
         topic: 'Old Meeting',
-        role: 'Teacher',
         ownerId: UserId.generate().toPrimitive(),
       };
 
@@ -590,7 +600,6 @@ describe('MeetingService', () => {
       const oldMeeting = {
         id: meetingId,
         topic: 'Old Meeting',
-        role: 'Teacher',
         ownerId: userId,
       };
 

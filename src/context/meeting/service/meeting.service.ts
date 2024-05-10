@@ -26,7 +26,6 @@ export interface MeetingRequest {
 export interface CreateMeetingResponse {
   id: string;
   topic: string;
-  role: string;
   studentId: string;
   signature: string;
 }
@@ -34,7 +33,6 @@ export interface CreateMeetingResponse {
 export interface MeetingResponse {
   id: string;
   topic: string;
-  role: string;
   studentId: string;
 }
 
@@ -61,7 +59,6 @@ export class MeetingService {
     const meeting = new Meeting(
       MeetingId.generate(),
       request.topic,
-      ownerParsedRole,
       new UserId(userAuthInfo.id),
       new UserId(request.studentId),
     );
@@ -86,7 +83,10 @@ export class MeetingService {
     if (!storedMeeting) {
       throw new MeetingNotFoundException(id);
     }
-    if (storedMeeting.toPrimitives().ownerId !== userAuthInfo.id) {
+    if (
+      storedMeeting.toPrimitives().ownerId !== userAuthInfo.id &&
+      storedMeeting.toPrimitives().studentId !== userAuthInfo.id
+    ) {
       throw new WrongPermissionsException('get meeting');
     }
     if (storedMeeting) return storedMeeting.toPrimitives();
@@ -95,10 +95,10 @@ export class MeetingService {
   getAll(userAuthInfo: UserAuthInfo): MeetingResponse[] {
     const meetings = this.meetingRepository.getAllMeetings();
     if (userAuthInfo.role === Role.Teacher) {
-      return this.getTeacherMeetings(meetings, userAuthInfo.id);
+      return this.getTeacherMeetings(meetings, userAuthInfo.id) ?? [];
     }
     if (userAuthInfo.role === Role.Student) {
-      return this.getStudentMeetings(meetings, userAuthInfo.id);
+      return this.getStudentMeetings(meetings, userAuthInfo.id) ?? [];
     }
     return [];
   }
@@ -123,7 +123,6 @@ export class MeetingService {
       Meeting.fromPrimitives({
         ...request,
         id,
-        role: Role.Teacher,
         ownerId: userAuthInfo.id,
       }),
     );
@@ -156,22 +155,18 @@ export class MeetingService {
     meetings: Meeting[],
     userId: string,
   ): MeetingResponse[] {
-    return meetings.map((meeting) => {
-      if (meeting.toPrimitives().ownerId === userId) {
-        return meeting.toPrimitives();
-      }
-    });
+    return meetings
+      .filter((meeting) => meeting.toPrimitives().ownerId === userId)
+      .map((meeting) => meeting.toPrimitives());
   }
 
   private getStudentMeetings(
     meetings: Meeting[],
     userId: string,
   ): MeetingResponse[] {
-    return meetings.map((meeting) => {
-      if (meeting.toPrimitives().studentId === userId) {
-        return meeting.toPrimitives();
-      }
-    });
+    return meetings
+      .filter((meeting) => meeting.toPrimitives().studentId === userId)
+      .map((meeting) => meeting.toPrimitives());
   }
 
   private signature(

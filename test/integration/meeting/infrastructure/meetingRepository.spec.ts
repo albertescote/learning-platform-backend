@@ -1,7 +1,6 @@
 import { MeetingRepository } from '../../../../src/context/meeting/infrastructure/meetingRepository';
 import Meeting from '../../../../src/context/meeting/domain/meeting';
 import MeetingId from '../../../../src/context/meeting/domain/meetingId';
-import { Role } from '../../../../src/context/shared/domain/role';
 import UserId from '../../../../src/context/shared/domain/userId';
 
 describe('Meeting Repository should', () => {
@@ -13,7 +12,6 @@ describe('Meeting Repository should', () => {
     const newMeeting: Meeting = new Meeting(
       MeetingId.generate(),
       'topic',
-      Role.Student,
       ownerId,
       studentId,
     );
@@ -28,7 +26,6 @@ describe('Meeting Repository should', () => {
     const newUpdatedMeeting = new Meeting(
       MeetingId.generate(),
       'topic-2',
-      Role.Teacher,
       ownerId,
       studentId,
     );
