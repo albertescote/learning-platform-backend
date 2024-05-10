@@ -9,11 +9,13 @@ describe('Meeting Repository should', () => {
 
   it('CRUD for meeting object', () => {
     const ownerId = UserId.generate();
+    const studentId = UserId.generate();
     const newMeeting: Meeting = new Meeting(
       MeetingId.generate(),
       'topic',
       Role.Student,
-      ownerId.toPrimitive(),
+      ownerId,
+      studentId,
     );
 
     const addedMeeting = meetingRepository.addMeeting(newMeeting);
@@ -27,7 +29,8 @@ describe('Meeting Repository should', () => {
       MeetingId.generate(),
       'topic-2',
       Role.Teacher,
-      ownerId.toPrimitive(),
+      ownerId,
+      studentId,
     );
     const updatedMeeting = meetingRepository.updateMeeting(
       new MeetingId(addedMeeting.toPrimitives().id),

@@ -13,9 +13,13 @@ import { UserAuthInfo } from '../../shared/domain/userAuthInfo';
 import { WrongPermissionsException } from '../exceptions/wrongPermissionsException';
 import { MeetingNotFoundException } from '../exceptions/meetingNotFoundException';
 import { NotAbleToExecuteMeetingDbTransactionException } from '../exceptions/notAbleToExecuteMeetingDbTransactionException';
+import UserId from '../../shared/domain/userId';
+import { InvalidStudentIdException } from '../exceptions/invalidStudentIdException';
+import { InvalidRoleForRequestedStudentException } from '../exceptions/invalidRoleForRequestedStudentException';
 
 export interface MeetingRequest {
   topic: string;
+  studentId: string;
   expirationSeconds?: number;
 }
 
@@ -23,6 +27,7 @@ export interface CreateMeetingResponse {
   id: string;
   topic: string;
   role: string;
+  studentId: string;
   signature: string;
 }
 
@@ -30,6 +35,7 @@ export interface MeetingResponse {
   id: string;
   topic: string;
   role: string;
+  studentId: string;
 }
 
 @Injectable()
@@ -44,18 +50,20 @@ export class MeetingService {
     request: MeetingRequest,
     userAuthInfo: UserAuthInfo,
   ): Promise<CreateMeetingResponse> {
-    const user = await this.moduleConnectors.obtainUserInformation(
-      userAuthInfo.email,
+    const owner = await this.moduleConnectors.obtainUserInformation(
+      userAuthInfo.id,
     );
-    const parsedRole = user.getRole();
-    if (parsedRole !== Role.Teacher) {
+    const ownerParsedRole = owner.getRole();
+    if (ownerParsedRole !== Role.Teacher) {
       throw new WrongPermissionsException('create meeting');
     }
+    await this.checkStudent(request.studentId);
     const meeting = new Meeting(
       MeetingId.generate(),
       request.topic,
-      parsedRole,
-      userAuthInfo.id,
+      ownerParsedRole,
+      new UserId(userAuthInfo.id),
+      new UserId(request.studentId),
     );
     const storedMeeting = this.meetingRepository.addMeeting(meeting);
     if (!storedMeeting) {
@@ -65,40 +73,50 @@ export class MeetingService {
       ...storedMeeting.toPrimitives(),
       signature: this.signature(
         request.topic,
-        parsedRole,
+        ownerParsedRole,
         request.expirationSeconds,
       ),
     };
   }
 
-  getById(id: string): MeetingResponse {
+  getById(id: string, userAuthInfo: UserAuthInfo): MeetingResponse {
     const storedMeeting = this.meetingRepository.getMeetingById(
       new MeetingId(id),
     );
     if (!storedMeeting) {
       throw new MeetingNotFoundException(id);
     }
-    return storedMeeting.toPrimitives();
+    if (storedMeeting.toPrimitives().ownerId !== userAuthInfo.id) {
+      throw new WrongPermissionsException('get meeting');
+    }
+    if (storedMeeting) return storedMeeting.toPrimitives();
   }
 
-  getAll(): MeetingResponse[] {
+  getAll(userAuthInfo: UserAuthInfo): MeetingResponse[] {
     const meetings = this.meetingRepository.getAllMeetings();
-    return meetings.map((meeting) => {
-      return meeting.toPrimitives();
-    });
+    if (userAuthInfo.role === Role.Teacher) {
+      return this.getTeacherMeetings(meetings, userAuthInfo.id);
+    }
+    if (userAuthInfo.role === Role.Student) {
+      return this.getStudentMeetings(meetings, userAuthInfo.id);
+    }
+    return [];
   }
 
-  update(
+  async update(
     id: string,
     request: MeetingRequest,
     userAuthInfo: UserAuthInfo,
-  ): MeetingResponse {
+  ): Promise<MeetingResponse> {
     const oldMeeting = this.meetingRepository.getMeetingById(new MeetingId(id));
     if (!oldMeeting) {
       throw new MeetingNotFoundException(id);
     }
     if (oldMeeting.toPrimitives().ownerId !== userAuthInfo.id) {
       throw new WrongPermissionsException('update meeting');
+    }
+    if (request.studentId !== oldMeeting.toPrimitives().studentId) {
+      await this.checkStudent(request.studentId);
     }
     const updatedMeeting = this.meetingRepository.updateMeeting(
       new MeetingId(id),
@@ -134,6 +152,28 @@ export class MeetingService {
     return;
   }
 
+  private getTeacherMeetings(
+    meetings: Meeting[],
+    userId: string,
+  ): MeetingResponse[] {
+    return meetings.map((meeting) => {
+      if (meeting.toPrimitives().ownerId === userId) {
+        return meeting.toPrimitives();
+      }
+    });
+  }
+
+  private getStudentMeetings(
+    meetings: Meeting[],
+    userId: string,
+  ): MeetingResponse[] {
+    return meetings.map((meeting) => {
+      if (meeting.toPrimitives().studentId === userId) {
+        return meeting.toPrimitives();
+      }
+    });
+  }
+
   private signature(
     topic: string,
     role: Role,
@@ -157,5 +197,16 @@ export class MeetingService {
       secret: ZOOM_MEETING_SDK_SECRET,
     };
     return this.rsaSigner.sign(signatureOptions);
+  }
+
+  private async checkStudent(studentId: string) {
+    const student =
+      await this.moduleConnectors.obtainUserInformation(studentId);
+    if (!student) {
+      throw new InvalidStudentIdException(studentId);
+    }
+    if (student.getRole() !== Role.Student) {
+      throw new InvalidRoleForRequestedStudentException(studentId);
+    }
   }
 }

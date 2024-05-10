@@ -14,6 +14,7 @@ import {
 import ms from 'ms';
 import { JoseWrapper } from '../../../../src/context/shared/infrastructure/joseWrapper';
 import { mock } from 'jest-mock-extended';
+import { Role } from '../../../../src/context/shared/domain/role';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -71,7 +72,10 @@ describe('AuthService', () => {
 
     const result = await service.validateUser(email, password);
 
-    expect(moduleConnectors.obtainUserInformation).toHaveBeenCalledWith(email);
+    expect(moduleConnectors.obtainUserInformation).toHaveBeenCalledWith(
+      undefined,
+      email,
+    );
     expect(passwordService.comparePasswords).toHaveBeenCalledWith(
       password,
       'hashedPassword',
@@ -132,6 +136,7 @@ describe('AuthService', () => {
     expect(joseWrapper.signJwt).toHaveBeenCalledWith(
       {
         email: user.email,
+        role: Role.Teacher.toString(),
         sub: user.id,
       },
       TOKEN_ISSUER,

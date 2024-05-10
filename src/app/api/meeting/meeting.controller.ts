@@ -36,15 +36,18 @@ export class MeetingController {
   @Get('/:id')
   @UseGuards(JwtCustomGuard)
   @HttpCode(200)
-  getById(@Param() idParamDto: IdParamDto): MeetingResponseDto {
-    return this.meetingService.getById(idParamDto.id);
+  getById(
+    @Param() idParamDto: IdParamDto,
+    @Request() req: { user: UserAuthInfo },
+  ): MeetingResponseDto {
+    return this.meetingService.getById(idParamDto.id, req.user);
   }
 
   @Get('/')
   @UseGuards(JwtCustomGuard)
   @HttpCode(200)
-  getAll(): MeetingResponseDto[] {
-    return this.meetingService.getAll();
+  getAll(@Request() req: { user: UserAuthInfo }): MeetingResponseDto[] {
+    return this.meetingService.getAll(req.user);
   }
 
   @Put('/:id')

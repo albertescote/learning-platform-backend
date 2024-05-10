@@ -22,7 +22,11 @@ export class JwtCustomStrategy extends PassportStrategy(
     }
     const accessTokenPayload =
       await this.authService.validateAccessToken(accessToken);
-    return { email: accessTokenPayload.email, id: accessTokenPayload.sub };
+    return {
+      email: accessTokenPayload.email,
+      id: accessTokenPayload.sub,
+      role: accessTokenPayload.role,
+    };
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {

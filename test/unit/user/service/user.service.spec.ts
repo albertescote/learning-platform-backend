@@ -202,7 +202,11 @@ describe('UserService', () => {
       email: 'john.doe@example.com',
       role: 'Student',
     };
-    const userAuthInfo = { id: userId, email: request.email };
+    const userAuthInfo = {
+      id: userId,
+      email: request.email,
+      role: Role.Student.toString(),
+    };
 
     const oldUser = {
       toPrimitives: () => ({
@@ -243,7 +247,11 @@ describe('UserService', () => {
       email: 'john.doe@example.com',
       role: 'Student',
     };
-    const userAuthInfo = { id: userId, email: request.email };
+    const userAuthInfo = {
+      id: userId,
+      email: request.email,
+      role: Role.Student.toString(),
+    };
 
     (userRepository.getUserById as jest.Mock).mockReturnValueOnce(null);
 
@@ -262,6 +270,7 @@ describe('UserService', () => {
     const userAuthInfo = {
       id: UserId.generate().toPrimitive(),
       email: request.email,
+      role: Role.Student.toString(),
     }; // User does not have permission
 
     const oldUser = {
@@ -288,7 +297,11 @@ describe('UserService', () => {
       email: 'john.doe@example.com',
       role: 'Student',
     };
-    const userAuthInfo = { id: userId, email: request.email };
+    const userAuthInfo = {
+      id: userId,
+      email: request.email,
+      role: Role.Student.toString(),
+    };
 
     const oldUser = {
       toPrimitives: () => ({
@@ -309,7 +322,11 @@ describe('UserService', () => {
   });
   it('should delete user successfully', () => {
     const userId = UserId.generate().toPrimitive();
-    const userAuthInfo = { id: userId, email: 'old.john.doe@example.com' };
+    const userAuthInfo = {
+      id: userId,
+      email: 'old.john.doe@example.com',
+      role: Role.Teacher.toString(),
+    };
 
     const oldUser = {
       toPrimitives: () => ({
@@ -330,7 +347,11 @@ describe('UserService', () => {
   });
   it('should throw UserNotFoundException if user does not exist', () => {
     const userId = UserId.generate().toPrimitive();
-    const userAuthInfo = { id: userId, email: 'john.doe@example.com' };
+    const userAuthInfo = {
+      id: userId,
+      email: 'john.doe@example.com',
+      role: Role.Teacher.toString(),
+    };
 
     (userRepository.getUserById as jest.Mock).mockReturnValueOnce(null);
 
@@ -343,6 +364,7 @@ describe('UserService', () => {
     const userAuthInfo = {
       id: UserId.generate().toPrimitive(),
       email: 'wrong-email@example.com',
+      role: Role.Teacher.toString(),
     }; // User does not have permission
 
     const oldUser = {
@@ -363,7 +385,11 @@ describe('UserService', () => {
   });
   it('should throw NotAbleToExecuteUserDbTransactionException if deleteUser fails', () => {
     const userId = UserId.generate().toPrimitive();
-    const userAuthInfo = { id: userId, email: 'old.john.doe@example.com' };
+    const userAuthInfo = {
+      id: userId,
+      email: 'old.john.doe@example.com',
+      role: Role.Student.toString(),
+    };
 
     const oldUser = {
       toPrimitives: () => ({
@@ -382,9 +408,9 @@ describe('UserService', () => {
       NotAbleToExecuteUserDbTransactionException,
     );
   });
-  it('should execute query successfully', async () => {
+  it('should execute query successfully with id as search parameter', async () => {
     const email = 'test@example.com';
-    const query: UserQuery = new UserQuery(email);
+    const query: UserQuery = new UserQuery(undefined, email);
     const user = {
       id: UserId.generate().toPrimitive(),
       firstName: 'John',
@@ -398,6 +424,24 @@ describe('UserService', () => {
     const result = await service.execute(query);
 
     expect(userRepository.getUserByEmail).toHaveBeenCalledWith(email);
+    expect(result).toEqual(user);
+  });
+  it('should execute query successfully with email as search parameter', async () => {
+    const userId = UserId.generate();
+    const query: UserQuery = new UserQuery(userId.toPrimitive());
+    const user = {
+      id: userId.toPrimitive(),
+      firstName: 'John',
+      familyName: 'Doe',
+      email: 'test@example.com',
+      role: 'Teacher',
+    };
+
+    (userRepository.getUserById as jest.Mock).mockReturnValueOnce(user);
+
+    const result = await service.execute(query);
+
+    expect(userRepository.getUserById).toHaveBeenCalledWith(userId);
     expect(result).toEqual(user);
   });
 });

@@ -1,11 +1,13 @@
 import MeetingId from './meetingId';
 import { Role } from '../../shared/domain/role';
+import UserId from '../../shared/domain/userId';
 
 export interface MeetingPrimitives {
   id: string;
   topic: string;
   role: string;
   ownerId: string;
+  studentId: string;
 }
 
 export default class Meeting {
@@ -13,7 +15,8 @@ export default class Meeting {
     private id: MeetingId,
     private topic: string,
     private role: Role,
-    private ownerId: string,
+    private ownerId: UserId,
+    private studentId: UserId,
   ) {}
 
   static fromPrimitives(meeting: MeetingPrimitives): Meeting {
@@ -21,7 +24,8 @@ export default class Meeting {
       new MeetingId(meeting.id),
       meeting.topic,
       Role[meeting.role],
-      meeting.ownerId,
+      new UserId(meeting.ownerId),
+      new UserId(meeting.studentId),
     );
   }
 
@@ -30,7 +34,8 @@ export default class Meeting {
       id: this.id.toPrimitive(),
       topic: this.topic,
       role: this.role.toString(),
-      ownerId: this.ownerId,
+      ownerId: this.ownerId.toPrimitive(),
+      studentId: this.studentId.toPrimitive(),
     };
   }
 }

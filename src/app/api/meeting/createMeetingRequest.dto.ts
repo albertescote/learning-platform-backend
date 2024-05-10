@@ -3,6 +3,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   Min,
 } from 'class-validator';
@@ -11,6 +12,10 @@ export class CreateMeetingRequestDto {
   @IsNotEmpty()
   @IsString()
   topic: string;
+
+  @IsNotEmpty()
+  @IsUUID()
+  studentId: string;
 
   @IsOptional()
   @IsNumber()

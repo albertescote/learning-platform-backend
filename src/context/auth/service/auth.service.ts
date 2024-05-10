@@ -34,7 +34,10 @@ export class AuthService {
   ) {}
 
   async validateUser(email: string, password: string): Promise<UserInfoDto> {
-    const user = await this.moduleConnectors.obtainUserInformation(email);
+    const user = await this.moduleConnectors.obtainUserInformation(
+      undefined,
+      email,
+    );
     if (!user) {
       throw new InvalidEmailException(email);
     }
@@ -70,7 +73,7 @@ export class AuthService {
     const accessTokenPayload =
       validationResult.decodedPayload as AccessTokenPayload;
     const user = await this.moduleConnectors.obtainUserInformation(
-      accessTokenPayload.email,
+      accessTokenPayload.sub,
     );
     if (!user) {
       throw new InvalidEmailException(accessTokenPayload.email);

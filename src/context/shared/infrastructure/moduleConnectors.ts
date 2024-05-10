@@ -6,8 +6,8 @@ import User from '../domain/user';
 @Injectable()
 class ModuleConnectors {
   constructor(private queryBus: QueryBus) {}
-  async obtainUserInformation(email: string): Promise<User> {
-    const userQuery = new UserQuery(email);
+  async obtainUserInformation(id?: string, email?: string): Promise<User> {
+    const userQuery = new UserQuery(id, email);
     return await this.queryBus.execute(userQuery);
   }
 }

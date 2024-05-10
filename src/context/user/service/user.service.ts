@@ -160,7 +160,12 @@ export class UserService implements IQueryHandler<UserQuery> {
   }
 
   async execute(query: UserQuery): Promise<User> {
-    return this.userRepository.getUserByEmail(query.email);
+    if (query.id) {
+      return this.userRepository.getUserById(new UserId(query.id));
+    }
+    if (query.email) {
+      return this.userRepository.getUserByEmail(query.email);
+    }
   }
 
   private checkExistingEmail(email: string): void {
